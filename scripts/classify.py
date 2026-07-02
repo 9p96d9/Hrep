@@ -111,12 +111,12 @@ def judge_gto_decision(hand):
     spot = _find_decision_spot(hand)
     if spot is None:
         return GTO_UNKNOWN
-    hero_action, required_equity, board = spot
 
-    strength = _hero_strength(hand.get("hero_cards"), board)
+    strength = _hero_strength(hand.get("hero_cards"), spot["board"])
     if strength is None:
         return GTO_UNKNOWN
 
+    required_equity = spot["required_equity"]
     if strength >= required_equity + GTO_JUDGE_MARGIN:
         call_is_correct = True
     elif strength <= required_equity - GTO_JUDGE_MARGIN:
@@ -124,7 +124,7 @@ def judge_gto_decision(hand):
     else:
         return GTO_UNKNOWN
 
-    hero_did_call = hero_action == "call"
+    hero_did_call = spot["action"] == "call"
     return GTO_CORRECT if hero_did_call == call_is_correct else GTO_INCORRECT
 
 
@@ -167,7 +167,11 @@ def _last_action_of(actions, position):
 def _find_decision_spot(hand):
     """Heroが相手のベット/レイズに応答（call/fold）した最終スポットを探す。
 
-    返り値: (hero_action, 必要エクイティ, その時点のボード) / 見つからなければ None
+    必要エクイティは specs/gto_math.md §2 DEFENDER系:
+    net_call ÷ (pot_before_call + net_call)。pot_before_call は相手のベット/レイズ
+    直前のポット（fixtures/仕様の表示例と同じ規約。α と数値が一致する）。
+
+    返り値: {"action", "required_equity", "board", "street"} / 見つからなければ None
     """
     streets = hand.get("streets") or {}
     hero_pos = hand.get("hero_position")
@@ -181,12 +185,14 @@ def _find_decision_spot(hand):
             continue
         invested = {}  # このストリートの投入額（amount_bb はストリート内累計額とみなす）
         current_bet = 0
+        pot_before_bet = pot
         aggressor = None
         for act in data.get("actions") or []:
             name = _name(act)
             pos = act.get("position")
             if name in _AGGRESSIVE_ACTIONS:
                 amount = act.get("amount_bb") or 0
+                pot_before_bet = pot
                 pot += amount - invested.get(pos, 0)
                 invested[pos] = amount
                 current_bet = amount
@@ -194,8 +200,12 @@ def _find_decision_spot(hand):
             elif name in ("call", "fold"):
                 net_call = current_bet - invested.get(pos, 0)
                 if pos == hero_pos and aggressor not in (None, hero_pos) and net_call > 0:
-                    required = net_call / (pot + net_call)
-                    found = (name, required, list(board))
+                    found = {
+                        "action": name,
+                        "required_equity": net_call / (pot_before_bet + net_call),
+                        "board": list(board),
+                        "street": street,
+                    }
                 if name == "call" and net_call > 0:
                     pot += net_call
                     invested[pos] = current_bet
