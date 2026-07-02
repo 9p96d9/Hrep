@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(gcloud run services describe:*)",
+      "Bash(gcloud run services logs:*)",
+      "Bash(gcloud run revisions list:*)",
+      "Bash(gcloud services list:*)",
+      "Bash(gcloud secrets list:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:hrep.app)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(git push --force:*)",
+      "Bash(gcloud run services delete:*)",
+      "Bash(gcloud firestore databases delete:*)",
+      "Bash(gcloud projects delete:*)",
+      "Bash(gcloud secrets delete:*)"
+    ]
+  },
+  "env": {
+    "PYTHONUTF8": "1"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/guard_commit.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/check_edit.py"
+          }
+        ]
+      }
+    ]
+  }
+}
