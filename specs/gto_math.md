@@ -1,6 +1,7 @@
 # specs/gto_math.md — GTO数学・スコア定義
 
-**Status: 📝 Draft**
+**Status: ✅ 実装済み**
+**実装:** `scripts/gto_math.py`
 **実装参考:** `GTO-/scripts/analyze2.py` (`_compute_gto_math`, `_compute_difficulty`, `_compute_nice_play_score`)
 **対応テスト:** `tests/test_gto_math.py`
 
@@ -155,7 +156,7 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
 
 | 入力 | 期待値 |
 |---|---|
-| bluff_catch × river, α=0.45 | difficulty ≈ 0.90〜0.92, nice_play_score ≥ 0.5 |
+| bluff_catch × river, α=0.45 | difficulty ≈ 0.94（0.90 + α補正+0.04）, nice_play_score ≥ 0.5 |
 | bluff_catch × turn | difficulty ≈ 0.72, nice_play_score ≥ 0.5 |
 | **nice_call × river** | **difficulty ≈ 0.90, nice_play_score ≥ 0.5（損益マイナスでも対象）** |
 | **bluff_catch × river（GTO判定=不正解）** | **nice_play_score = 0.0（幸運なコールは除外）** |
@@ -176,3 +177,9 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
   2. **`nice_call`（0.90）・`bad_call`（0.30）を追加**し、ナイスプレイ対象を
      {bluff_catch, nice_call, nice_fold} に拡張。bluff_catchに幸運コール除外条件を追加。
      `call_lost` は判定困難扱いに再定義し 0.30 → 0.25。
+- **2026-07-02:** `scripts/gto_math.py` として実装（Status: ✅）。
+  1. 受入基準「bluff_catch × river, α=0.45 → ≈0.90〜0.92」を ≈0.94 に訂正
+     （§3の計算式 0.90 + (0.9−0.5)×0.1 = 0.94 と矛盾していた。計算式を正とした）。
+  2. 必要エクイティの `pot_before_call` は相手のベット/レイズ**直前**のポットと定義
+     （tests/PLAN.md fixtures例「必要エクイティ=42%（α=42%）」と同じ規約。αと数値が一致する）。
+  3. αをgto_math文字列から抽出できないハンドは微補正なし（補正0）として扱う。

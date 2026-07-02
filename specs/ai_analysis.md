@@ -1,6 +1,6 @@
 # specs/ai_analysis.md — AI解析システム仕様
 
-**Status: 📝 Draft**
+**Status: 🔄 実装中**（§8バリデーター: `scripts/ai_output_validator.py` 実装済み・テスト済み。解析パイプライン本体は未実装）
 **実装参考:** `GTO-/scripts/analyze2.py`（旧`detail`実装。`detail_street`は新規実装）
 **対応テスト:** `tests/test_ai_output.py`
 
@@ -190,3 +190,8 @@ AIはこのブロックの数値を再計算せず、そのまま引用して解
 
 - **HrepNext初版:** `detail_street` をDraft付録から正式版（§3）に昇格。`standard`モードを削除。
   Fable 5実験の位置づけを§2に明記（SPEC外）。
+- **2026-07-02:** §8の`detail_street`受入基準を `scripts/ai_output_validator.py` として実装
+  （純粋関数・本番の受入ゲートと共用）。`detail`モード（移行期間のみ）のバリデーターは未実装。
+  「主語がポジション名」チェックのV1実装: 全フィールドで「ヒーロー」の使用を禁止し、
+  ストリート叙述4フィールド（非空のもの）にポジション名を要求する。
+  kaizen は「このラインで十分」が正当な値のためポジション名を要求しない。

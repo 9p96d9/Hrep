@@ -1,0 +1,109 @@
+{
+  "valid_river": {
+    "street_reached": "river",
+    "output": {
+      "id": 1,
+      "preflop_context": "BBはBTNの2.5bbオープンにディフェンド。KQs、ATo-A5o、22-99を含む広いレンジ。",
+      "flop_read": "9h5d2cのドライボードではBTNのCBetレンジがワイドで、BBはペアとバックドアで継続する。",
+      "turn_read": "KhによりBTNのレンジにKxが加わる一方、BBのKQs、KJsも強化される。",
+      "river_analysis": "7sのリバーでBTNの20bbベットに対し、[GTO数学]のMDF基準=58%を満たすにはBBはブラフキャッチャー上位までコールが必要。",
+      "opp_exploit": "BTNのリバーbet頻度が過剰なら、BBはKxヒット以上でcallを広げて搾取できる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "valid_flop_only": {
+    "street_reached": "flop",
+    "output": {
+      "id": 2,
+      "preflop_context": "COが2.5bbでオープンし、BBがディフェンド。BBのレンジは22-99、KQs、ATo-を含む。",
+      "flop_read": "Jh8c3dでCOのCBetに対し、BBはペア・ガットショット・バックドアで継続しフォールドレンジを絞る。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "COのCBet頻度が高すぎる場合、BBはcheck-raiseの頻度を上げて搾取できる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_mdf_on_flop": {
+    "street_reached": "river",
+    "output": {
+      "id": 3,
+      "preflop_context": "BBはBTNのオープンにディフェンド。KQs、ATo-を含むレンジ。",
+      "flop_read": "9h5d2cでBTNのCBetに対し、BBはMDFを満たすためにワイドにコールする。",
+      "turn_read": "KhでBBのKQsが強化される。",
+      "river_analysis": "7sでBTNのベットに対し、[GTO数学]の必要エクイティ=42%を上回るためBBはコール。",
+      "opp_exploit": "BTNのbet頻度が高いならBBはcallを広げる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_mdf_on_turn": {
+    "street_reached": "river",
+    "output": {
+      "id": 4,
+      "preflop_context": "BBはBTNのオープンにディフェンド。KQs、ATo-を含むレンジ。",
+      "flop_read": "9h5d2cでBTNのCBetに対し、BBはペアとバックドアで継続する。",
+      "turn_read": "KhでBTNのセカンドバレルに対し、BBはMDF基準を満たすまでコールする。",
+      "river_analysis": "7sでBTNのベットに対し、[GTO数学]のMDF基準=58%を根拠にBBはコール。",
+      "opp_exploit": "BTNのbet頻度が高いならBBはcallを広げる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_hero_subject": {
+    "street_reached": "flop",
+    "output": {
+      "id": 5,
+      "preflop_context": "ヒーローはBTNのオープンにコールした。",
+      "flop_read": "9h5d2cで相手のベットにヒーローはコールした。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "相手のbet頻度が高いならcallを広げる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_missing_field": {
+    "street_reached": "flop",
+    "output": {
+      "id": 6,
+      "preflop_context": "COが2.5bbでオープンし、BBがディフェンド。",
+      "flop_read": "Jh8c3dでCOのCBetに対し、BBはペアで継続する。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "COのCBet頻度が高いならBBはcheck-raiseを増やす。"
+    }
+  },
+  "violation_river_no_mdf": {
+    "street_reached": "river",
+    "output": {
+      "id": 7,
+      "preflop_context": "BBはBTNのオープンにディフェンド。KQs、ATo-を含むレンジ。",
+      "flop_read": "9h5d2cでBTNのCBetに対し、BBはペアとバックドアで継続する。",
+      "turn_read": "KhでBBのKQsが強化される。",
+      "river_analysis": "7sでBTNのベットは強く見えるため、BBは慎重に判断する。",
+      "opp_exploit": "BTNのbet頻度が高いならBBはcallを広げる。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_unreached_nonempty": {
+    "street_reached": "flop",
+    "output": {
+      "id": 8,
+      "preflop_context": "COが2.5bbでオープンし、BBがディフェンド。",
+      "flop_read": "Jh8c3dでCOのCBetに対し、BBはペアで継続する。",
+      "turn_read": "ターンに到達していないが、仮に到達すればBBはKxで継続できる。",
+      "river_analysis": "",
+      "opp_exploit": "COのCBet頻度が高いならBBはcheck-raiseを増やす。",
+      "kaizen": "このラインで十分。"
+    }
+  },
+  "violation_opp_exploit_vague": {
+    "street_reached": "flop",
+    "output": {
+      "id": 9,
+      "preflop_context": "COが2.5bbでオープンし、BBがディフェンド。",
+      "flop_read": "Jh8c3dでCOのCBetに対し、BBはペアで継続する。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "この相手はアグレッシブなので警戒し、強気の姿勢を見せることが重要。",
+      "kaizen": "このラインで十分。"
+    }
+  }
+}
