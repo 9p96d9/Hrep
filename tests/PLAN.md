@@ -53,6 +53,25 @@ test_gto_math_fold_turn      → "MDF" を含まない
 
 ### 優先度 HIGH（分類は骨格なので先に書く）
 
+#### `tests/test_equity.py`
+対象: リバーエクイティ推定（レンジ区間モデル）
+仕様参照: `specs/classify.md` §3 V1アルゴリズム
+
+```
+test_quads_call_correct                  → correct（区間全体が必要エクイティの上）
+test_top_pair_good_kicker_call_correct   → correct
+test_mid_pair_straddles_falls_to_unknown → unknown（区間が跨ぐ）
+test_trash_call_incorrect                → incorrect（楽観バウンドでも沈む）
+test_non_river_board_falls_to_unknown    → unknown（V1はリバーのみ判定）
+test_missing_required_equity_falls_to_unknown → unknown
+test_interval_is_consistent              → 悲観 ≤ 楽観
+test_equity_monotone_in_range_strength   → レンジが強いほどエクイティ低下
+test_verdict_feeds_classification        → nice_call/bad_call/call_lost へ接続
+```
+
+注意: 全列挙（C(45,2)=990コンボ）・乱数なしなので決定的。treysは純Pythonで
+DB・外部API不要の原則は維持される。
+
 #### `tests/test_classify.py`
 対象: 分類ロジック
 仕様参照: `specs/classify.md`
@@ -142,7 +161,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install pytest python-dotenv
+      - run: pip install pytest python-dotenv treys
       - run: pytest tests/ -v --tb=short
 ```
 
