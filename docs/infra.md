@@ -66,6 +66,11 @@ Docker build → Cloud Run deploy
 完了 → curl https://hrep.app/health で確認
 ```
 
+### テストCI（`.github/workflows/test.yml`）
+
+全push/PRで `pytest tests/` を実行する（Python 3.11・依存は pytest + python-dotenv のみ）。
+DB・外部API・secretsは不要（tests/PLAN.md の純粋関数テスト原則）。デプロイワークフローとは独立。
+
 ### Cloud Run 設定注意点
 
 - SSEストリーミングのため `--timeout=3600` を明示設定（デフォルト60秒では切れる）

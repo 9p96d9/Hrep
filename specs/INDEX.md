@@ -9,7 +9,6 @@ Claude が実装作業を始める前に、このファイルを読んで該当S
 - **Status: 📝 Draft** → SPECのみ、未実装
 - **Status: ⚠️ 要更新** → コードとSPECが乖離している疑い
 
-> HrepNextはコーディング前段階なので、全SPECのStatusは 📝 Draft から始まる。
 > 旧Hrep/GTO-に実装があっても、このフォルダにコードが入るまでは ✅ にしない。
 
 ---
@@ -18,9 +17,9 @@ Claude が実装作業を始める前に、このファイルを読んで該当S
 
 | ファイル | 対象領域 | Status | 対応テスト |
 |---|---|---|---|
-| `specs/gto_math.md` | α・MDF・難易度スコア・ナイスプレイ判定 | 📝 Draft（実装参考: `GTO-/scripts/analyze2.py`） | `tests/test_gto_math.py` |
-| `specs/classify.md` | 9カテゴリ定義・ライン分類ルール | 📝 Draft（実装参考: `GTO-/scripts/classify.py`） | `tests/test_classify.py` |
-| `specs/ai_analysis.md` | AIプロンプト仕様・`detail_street`出力・品質ルール | 📝 Draft | `tests/test_ai_output.py` |
+| `specs/gto_math.md` | α・MDF・難易度スコア・ナイスプレイ判定 | ✅ 実装済み（`scripts/gto_math.py`） | `tests/test_gto_math.py` |
+| `specs/classify.md` | 11カテゴリ定義・ライン分類ルール | 🔄 実装中（`scripts/classify.py`。treysエクイティ推定が未実装） | `tests/test_classify.py` |
+| `specs/ai_analysis.md` | AIプロンプト仕様・`detail_street`出力・品質ルール | 🔄 実装中（§8バリデーターのみ: `scripts/ai_output_validator.py`） | `tests/test_ai_output.py` |
 
 ---
 

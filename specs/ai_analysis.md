@@ -1,6 +1,6 @@
 # specs/ai_analysis.md — AI解析システム仕様
 
-**Status: 📝 Draft**
+**Status: 🔄 実装中**（§8の`detail_street`バリデーターのみ実装・テスト済み: `scripts/ai_output_validator.py`。プロンプト生成・プロバイダー呼び出しは未実装）
 **実装参考:** `GTO-/scripts/analyze2.py`（旧`detail`実装。`detail_street`は新規実装）
 **対応テスト:** `tests/test_ai_output.py`
 
@@ -190,3 +190,6 @@ AIはこのブロックの数値を再計算せず、そのまま引用して解
 
 - **HrepNext初版:** `detail_street` をDraft付録から正式版（§3）に昇格。`standard`モードを削除。
   Fable 5実験の位置づけを§2に明記（SPEC外）。
+- **2026-07-03 実装（`scripts/ai_output_validator.py`）:** §8の `detail_street` 受入基準を
+  バリデーター（純粋関数）として実装。turn/river到達判定はAI出力でなくハンドデータ側から
+  与える設計。本番のAI出力受入ゲートとしてもこの関数を再利用する（tests/PLAN.md）。

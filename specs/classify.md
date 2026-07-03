@@ -1,7 +1,7 @@
 # specs/classify.md — ハンド分類定義
 
-**Status: 📝 Draft**
-**実装参考:** `GTO-/scripts/classify.py`, `GTO-/scripts/hand_converter.py`（旧9カテゴリ実装。nice_call/bad_callは新規）
+**Status: 🔄 実装中**（分類フロー・GTO判定機構は実装・テスト済み。treysベースのハンド強度推定＝`judge_call_correctness` への `hero_equity` 供給が未実装）
+**実装:** `scripts/classify.py`（実装参考: `GTO-/scripts/classify.py`, `GTO-/scripts/hand_converter.py`。nice_call/bad_callは新規）
 **対応テスト:** `tests/test_classify.py`
 
 ---
@@ -157,3 +157,8 @@
      「負けたが正しかったコール」をナイスプレイ候補に昇格（§0の設計原則）。
      `call_lost` は「判定困難なコール負け（warn）」に再定義。
   3. `bluff_catch` のナイスプレイ対象に「GTO判定=不正解なら除外」条件を追加（幸運なコールの誤称賛防止）。
+- **2026-07-03 実装（`scripts/classify.py`）:**
+  1. §3の分類フローと GTOスコア判定機構（`judge_call_correctness`: 必要エクイティ±0.10の
+     中間帯は判定困難に倒す）を実装。§5受入基準は全件テスト済み。
+  2. treys評価によるHeroハンド強度（`hero_equity`）の算出は未実装。実装までは
+     verdict=unknown（warn）に倒れるため、誤称賛・誤指摘は発生しない（保守的側に安全）。
