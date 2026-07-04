@@ -1,7 +1,7 @@
 # docs/features/improve_chances.md — 改善チャンスセクション
 
 **種別: UI仕様（テストなし）**
-**関連SPEC:** `specs/classify.md`（bad_fold / bad_call の判定）, `specs/gto_math.md`（スコア計算）
+**関連SPEC:** `specs/classify.md`（bad_fold / bad_call の判定）, `specs/gto_math.md`（スコア計算・**§4b 選定ロジック `select_improve_chances`**）
 
 ---
 

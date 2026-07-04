@@ -78,6 +78,8 @@ def annotate_hand(hand: dict) -> dict:
             "gto_math": "",
             "difficulty_score": difficulty,
             "nice_play_score": 0.0,
+            "decision_street": "preflop",
+            "decision_pot_bb": 0.0,
         }
 
     street_name, agg_index = aggression
@@ -125,4 +127,6 @@ def annotate_hand(hand: dict) -> dict:
         "gto_math": gto_math_text,
         "difficulty_score": difficulty,
         "nice_play_score": nice_play,
+        "decision_street": street_name,
+        "decision_pot_bb": pot_bb,
     }

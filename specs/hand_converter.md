@@ -25,11 +25,14 @@ INPUT:  hand: dict（docs/data_schema.md のハンドJSON形式）
 OUTPUT: dict
   {
     "bluered_classification": {"category", "category_label", "line"},
-    "gto_math": str,            # [GTO数学]ブロック。preflop_onlyは ""
-    "difficulty_score": float,  # 0.0〜1.0
-    "nice_play_score": float    # 0.0〜1.0
+    "gto_math": str,              # [GTO数学]ブロック。preflop_onlyは ""
+    "difficulty_score": float,    # 0.0〜1.0
+    "nice_play_score": float,     # 0.0〜1.0
+    "decision_street": str,       # 攻撃ストリート（判断スポット）。preflop_onlyは "preflop"
+    "decision_pot_bb": float      # 判断スポットのポット。preflop_onlyは 0.0
   }
-（入力handは変更しない。呼び出し側がマージする）
+（入力handは変更しない。呼び出し側がマージする。
+ decision_street / decision_pot_bb は改善チャンス選定＝specs/gto_math.md §4b が使用）
 ```
 
 ---
@@ -102,3 +105,5 @@ OUTPUT: dict
 
 - **2026-07-03 新規作成:** GTO-の `hand_converter.py` 相当をSPEC化。チェックダウン→preflop_only、
   river以外は判定しない（結果論防止）、hero_result_bb=0は非勝利側、の3点をV1設計判断として明記。
+- **2026-07-04:** OUTPUT に `decision_street` / `decision_pot_bb` を追加
+  （改善チャンス選定 `select_improve_chances` = specs/gto_math.md §4b が使用）。

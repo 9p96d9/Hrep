@@ -46,6 +46,8 @@
   "gto_math": "[GTO数学] ブラフキャッチスポット | リバー | 必要エクイティ=33%",
   "difficulty_score": 0.90,
   "nice_play_score": 0.90,
+  "decision_street": "river",
+  "decision_pot_bb": 28.0,
   "result": {
     "allin_ev": {"PlayerA": 15.2}
   },
