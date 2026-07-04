@@ -5,7 +5,12 @@
   "description": "T4ポーカーサイトのハンドを傍受し、HrepNextサーバーへ送って判断品質を解析する。",
   "permissions": ["storage"],
   "host_permissions": [
-    "https://*.t4-placeholder.example/*",
+    "https://*.tenfourpoker.com/*",
+    "https://tenfourpoker.com/*",
+    "https://*.tenfour-poker.com/*",
+    "https://tenfour-poker.com/*",
+    "https://*.t4poker.com/*",
+    "https://t4poker.com/*",
     "https://hrep.app/*",
     "https://*.run.app/*"
   ],
@@ -14,13 +19,27 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.t4-placeholder.example/*"],
+      "matches": [
+        "https://*.tenfourpoker.com/*",
+        "https://tenfourpoker.com/*",
+        "https://*.tenfour-poker.com/*",
+        "https://tenfour-poker.com/*",
+        "https://*.t4poker.com/*",
+        "https://t4poker.com/*"
+      ],
       "js": ["interceptor.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://*.t4-placeholder.example/*"],
+      "matches": [
+        "https://*.tenfourpoker.com/*",
+        "https://tenfourpoker.com/*",
+        "https://*.tenfour-poker.com/*",
+        "https://tenfour-poker.com/*",
+        "https://*.t4poker.com/*",
+        "https://t4poker.com/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_start",
       "world": "ISOLATED"

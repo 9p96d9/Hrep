@@ -53,40 +53,148 @@
   }
 
   // ---------------------------------------------------------------------------
-  // adapter 関数（T4依存の唯一の場所） — すべて TODO
+  // adapter 関数（T4依存の唯一の場所）
   //   ここ以外に T4 メッセージ形式の知識を漏らさないこと。
+  //   実装参考: GTO-/extension/interceptor.js（Socket.IO 傍受）。
+  //
+  //   T4の通信は Socket.IO（over WebSocket）。イベントフレームは
+  //   "42" プレフィックス + JSON配列 [eventName, payload] のテキスト。
+  //   ハンドは "fastFoldTableState" イベントで運ばれ、isHandInProgress===false
+  //   （または fastFoldTableRemoved によるフォールド離脱）で1ハンド完了と判定する。
   // ---------------------------------------------------------------------------
+
+  // ハンド境界検出のための adapter 内部状態（T4依存なのでここに閉じ込める）。
+  const _lastState = {};    // tableId → 直近の raw fastFoldTableState
+  const _lastHandKey = {};  // tableId → 送信済み actionHistory のキー（重複防止）
 
   // 生の WebSocket メッセージ（文字列 or ArrayLike）を JSON などにデコードする。
   function decodeT4Frame(data) {
-    // TODO(GTO-/extension/interceptor.js): T4のフレーム形式に合わせてデコード。
-    //   JSON テキストなのか、独自バイナリなのか、複数メッセージ連結なのかを確認する。
-    if (typeof data === "string") {
-      try { return JSON.parse(data); } catch { return null; }
-    }
-    return null; // バイナリ形式なら要実装
+    // T4は Socket.IO テキストフレーム。バイナリ（Blob/ArrayBuffer）は対象外。
+    if (typeof data !== "string") return null;
+    // Socket.IO EVENT パケットは "42" 始まり（"42/namespace," が付くこともある）。
+    if (!data.startsWith("42")) return null;
+    const start = data.indexOf("[");
+    if (start < 0) return null;
+    let arr;
+    try { arr = JSON.parse(data.slice(start)); } catch { return null; }
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    return { event: arr[0], data: arr[1] };
   }
 
   // デコード済みメッセージから「正規化済みテーブル状態スナップショット」を作る。
   // 返す形（このファイル内でのみ使う中間表現）:
-  //   { mySeatIndex, buttonPosition, seats: [{ cards:[...], ... }], ... }
+  //   { tableId, mySeatIndex, buttonPosition, seats: [{ cards:[...], ... }], ... }
+  // stash 用に、席のホールカード欄を .cards へ正規化しておく
+  // （T4は cards / hand / holeCards のいずれかで持つ）。
   function toSnapshot(msg) {
-    // TODO(GTO-/extension/interceptor.js): T4メッセージ → snapshot への写像。
-    //   seats / buttonPosition / mySeatIndex に相当するフィールドを特定する。
-    return null;
+    if (!msg || msg.event !== "fastFoldTableState") return null;
+    const d = msg.data;
+    if (!d || d.tableId == null) return null;
+    const seats = (Array.isArray(d.seats) ? d.seats : []).map((s) => {
+      if (!s) return s;
+      const cards = s.cards || s.hand || s.holeCards;
+      return Array.isArray(cards) ? { ...s, cards } : s;
+    });
+    return {
+      tableId: d.tableId,
+      mySeatIndex: d.mySeatIndex,
+      buttonPosition: d.buttonPosition,
+      seats,
+    };
+  }
+
+  // 6-max: buttonPosition + 着席プレイヤーから Hero のポジション名を算出する。
+  //   offset 0=BTN,1=SB,2=BB,3=UTG,4=HJ,5=CO（人数に応じて縮約）。
+  function calcHeroPosition(state) {
+    const btn = state.buttonPosition != null ? state.buttonPosition : stash.buttonPosition;
+    const mySeat = state.mySeatIndex != null ? state.mySeatIndex : stash.mySeatIndex;
+    if (btn == null || mySeat == null) return "";
+    const active = (state.seats || [])
+      .map((s, i) => (s && s.playerName ? i : -1))
+      .filter((i) => i >= 0);
+    const n = active.length;
+    const btnPos = active.indexOf(btn);
+    const heroPos = active.indexOf(mySeat);
+    if (n === 0 || btnPos < 0 || heroPos < 0) return "";
+    const offset = (heroPos - btnPos + n) % n;
+    const NAMES = {
+      2: ["BTN", "BB"],
+      3: ["BTN", "SB", "BB"],
+      4: ["BTN", "SB", "BB", "UTG"],
+      5: ["BTN", "SB", "BB", "UTG", "CO"],
+      6: ["BTN", "SB", "BB", "UTG", "HJ", "CO"],
+    };
+    return (NAMES[n] || [])[offset] || "";
   }
 
   // メッセージ列から「1ハンド完了」を検出し、完成ハンドオブジェクトを返す。
   // stash（退避したhero情報）を使って、フォールドで欠けた情報を補完する。
-  // 返す形は background.js 側で hand_converter 互換へ整形する前段の生ハンド。
+  // 返す形は background.js の normalizeHand が hand JSON へ整形する前段の生ハンド
+  // （= T4 fastFoldTableState そのもの。handResults/seats/actionHistory/… を持つ）。
   function extractCompletedHand(msg, snapshot) {
-    // TODO(GTO-/extension/interceptor.js): ハンド境界（開始/終了）検出ロジック。
-    //   ハンド終了イベントを受けたら、そのハンドのアクション列・ボード・結果を
-    //   組み立てて返す。フォールドで消えたhero情報は stash から補完する:
-    //     heroCards        <- stash.heroCards
-    //     buttonPosition   <- stash.buttonPosition
-    //   ハンド完了後は resetStash() を呼ぶこと。
+    if (!msg) return null;
+    const ev = msg.event;
+    const d = msg.data;
+
+    // 通常完了: fastFoldTableState が isHandInProgress:false を運んでくる
+    if (ev === "fastFoldTableState" && d && d.tableId != null) {
+      _lastState[d.tableId] = d;
+      if (d.isHandInProgress === false) {
+        return _finishHand(d.tableId);
+      }
+      return null;
+    }
+
+    // フォールド離脱: fastFoldTableRemoved で退席 → 直近stateを確定させる
+    if (ev === "fastFoldTableRemoved") {
+      const tableId =
+        d && typeof d === "object" && d.tableId != null ? d.tableId
+        : (typeof d === "string" || typeof d === "number") ? d
+        : null;
+      if (tableId != null) return _finishHand(tableId);
+    }
     return null;
+  }
+
+  // tableId の直近stateを1ハンドとして確定する。重複・空はスキップ。
+  function _finishHand(tableId) {
+    const state = _lastState[tableId];
+    if (!state) return null;
+    const history = state.actionHistory;
+    if (!Array.isArray(history) || history.length === 0) return null; // 空スキップ
+    const key = JSON.stringify(history);
+    if (_lastHandKey[tableId] === key) return null;                    // 重複スキップ
+    _lastHandKey[tableId] = key;
+
+    const hand = _fillHeroFromStash(state);
+    delete _lastState[tableId];
+    return hand;
+  }
+
+  // フォールドで消えた hero 情報（カード・ポジション）を stash から補完する。
+  // 完了stateの handResults に hero エントリが無ければ追加、欠けたフィールドだけ埋める。
+  function _fillHeroFromStash(state) {
+    const out = { ...state };
+    if (out.buttonPosition == null && stash.buttonPosition != null) {
+      out.buttonPosition = stash.buttonPosition;
+    }
+    const mySeat = out.mySeatIndex != null ? out.mySeatIndex : stash.mySeatIndex;
+    if (out.mySeatIndex == null && mySeat != null) out.mySeatIndex = mySeat;
+    if (mySeat == null) return out;
+
+    const position = calcHeroPosition(out);
+    const results = Array.isArray(out.handResults) ? out.handResults.map((r) => ({ ...r })) : [];
+    let hero = results.find((r) => r.seatIndex === mySeat);
+    if (!hero) {
+      hero = { seatIndex: mySeat, hand: [], position: "", profit: 0, playerName: "", isWinner: false };
+      results.push(hero);
+    }
+    if ((!hero.hand || hero.hand.length === 0) && stash.heroCards && stash.heroCards.length) {
+      hero.hand = stash.heroCards.slice();
+    }
+    if (!hero.position && position) hero.position = position;
+    out.handResults = results;
+    return out;
   }
 
   // adapter の統合エントリ。生フレーム1つを受け取り、必要なら完成ハンドを emit する。

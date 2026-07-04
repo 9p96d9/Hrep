@@ -39,17 +39,204 @@ function setLocal(obj) {
 // T4生ハンド → data_schema.md 互換 hand_json への整形
 // ---------------------------------------------------------------------------
 function normalizeHand(raw) {
-  // interceptor.js の extractCompletedHand が返す生ハンドを、サーバーの
-  // annotate_hand が期待するフィールド名（docs/data_schema.md）へ写像する。
+  // interceptor.js の extractCompletedHand が返す生ハンド（T4 fastFoldTableState）を、
+  // サーバーの annotate_hand が期待するハンドJSON（docs/data_schema.md）へ写像する。
+  // 分類・GTO数学・スコアは annotate_hand が付与するので送らない。
   //
-  // TODO(GTO-/extension/interceptor.js と対で埋める):
-  //   interceptor 側の生ハンド形が確定したら、ここで下記フィールドへマップする:
-  //     hand_number, hero_position, hero_cards, hero_result_bb, is_3bet_pot,
-  //     players[], streets{preflop, flop, turn, river}
-  //   分類・GTO数学・スコアはサーバーの annotate_hand が付与するので送らない。
-  //
-  // 現状は pass-through。生ハンドが既に schema 形なら素通しで動く。
-  return raw;
+  // 参考実装: GTO-/scripts/hand_converter.py convert_hand_json。
+  //   ただし本サーバーの契約に合わせて (a) アクション名は小文字、
+  //   (b) カードは treys 記法（"As" / "Th"、ランク大文字・スート小文字）で出す。
+  if (!raw || typeof raw !== "object") return raw;
+  // 既に schema 形（hero_position + streets を持つ）ならそのまま通す。
+  if (raw.hero_position !== undefined && raw.streets !== undefined) return raw;
+  // T4 raw の目印が無ければ変換しない（未知の形を壊さない）。
+  if (raw.handResults === undefined && raw.actionHistory === undefined) return raw;
+
+  const handResults = Array.isArray(raw.handResults) ? raw.handResults : [];
+  const seats = Array.isArray(raw.seats) ? raw.seats : [];
+  const mySeatIndex = raw.mySeatIndex != null ? raw.mySeatIndex : -1;
+  const communityRaw = Array.isArray(raw.communityCards) ? raw.communityCards : [];
+
+  // position → playerName（actionHistory パース用）
+  const posToName = {};
+  for (const r of handResults) {
+    if (r && r.position != null) posToName[r.position] = r.playerName || "";
+  }
+
+  // players[] を handResults から構築
+  const players = handResults.map((r) => ({
+    name: r.playerName || "",
+    position: r.position || "",
+    is_hero: r.seatIndex === mySeatIndex,
+    hole_cards: (Array.isArray(r.hand) ? r.hand : []).map(convertCard).filter(Boolean),
+    result_bb: Number(r.profit || 0),
+  }));
+
+  // actionHistory を streets / result / is_3bet_pot へ
+  const parsed = parseActionHistory(Array.isArray(raw.actionHistory) ? raw.actionHistory : [], posToName);
+  const streets = parsed.streets;
+
+  // communityCards を各ストリートの board へ補完
+  const board = communityRaw.map(convertCard).filter(Boolean);
+  if (board.length >= 3 && streets.flop && !(streets.flop.board || []).length) streets.flop.board = board.slice(0, 3);
+  if (board.length >= 4 && streets.turn && !(streets.turn.board || []).length) streets.turn.board = [board[3]];
+  if (board.length >= 5 && streets.river && !(streets.river.board || []).length) streets.river.board = [board[4]];
+
+  // hero
+  const hero = players.find((p) => p.is_hero) || null;
+  const heroPosition = hero ? hero.position : "";
+  const heroCards = hero ? hero.hole_cards : [];
+  let heroResultBb = hero ? hero.result_bb : 0;
+
+  // フォールドプレイヤーの profit が 0 で返る場合、アクション履歴から投資額を補正
+  const heroIsWinner = hero && parsed.result.winners.some(
+    (w) => w.name === (hero.name || heroPosition)
+  );
+  if (hero && heroResultBb === 0 && !heroIsWinner) {
+    heroResultBb = -calcHeroInvestment(streets, heroPosition);
+  }
+
+  // winners が actionHistory から取れなければ handResults で補完
+  if (parsed.result.winners.length === 0) {
+    for (const r of handResults) {
+      if (r && r.isWinner) parsed.result.winners.push({ name: r.playerName || "", amount_bb: Number(r.profit || 0) });
+    }
+  }
+
+  return {
+    hand_number: raw.hand_number ?? null,
+    hero_position: heroPosition,
+    hero_cards: heroCards,
+    hero_result_bb: heroResultBb,
+    is_3bet_pot: parsed.is_3bet_pot,
+    players,
+    streets,
+    result: parsed.result,
+  };
+}
+
+// "As" → "As", "Td"/"10d" → "Td"/"Th"（treys 記法: ランク大文字・スート小文字）。
+// 伏せ札("**")・不正値は null。
+function convertCard(card) {
+  if (typeof card !== "string" || card.length < 2 || card === "**") return null;
+  let rank = card.slice(0, -1).toUpperCase();
+  const suit = card.slice(-1).toLowerCase();
+  if (rank === "10") rank = "T";
+  if (!/^[2-9TJQKA]$/.test(rank) || !/^[shdc]$/.test(suit)) return null;
+  return rank + suit;
+}
+
+const T4_ACTION_MAP = { FOLD: "fold", CHECK: "check", CALL: "call", BET: "bet", RAISE: "raise", ALLIN: "allin" };
+
+function parseBb(s) {
+  const m = String(s).trim().replace(/[bB]+$/, "");
+  const n = parseFloat(m);
+  return Number.isFinite(n) ? n : 0;
+}
+
+// GTO-/scripts/hand_converter.py parse_action_history の JS 移植。
+function parseActionHistory(actionHistory, posToName) {
+  const streets = { preflop: [], flop: null, turn: null, river: null };
+  const result = { winners: [], rake_bb: 0, allin_ev: {} };
+
+  let currentStreet = null;
+  let currentActions = [];
+  let currentPot = 0;
+  let inResults = false;
+
+  function flush() {
+    if (currentStreet === "preflop") {
+      streets.preflop = currentActions.slice();
+    } else if (currentStreet === "flop" || currentStreet === "turn" || currentStreet === "river") {
+      streets[currentStreet] = { board: [], pot_bb: currentPot, actions: currentActions.slice() };
+    }
+    currentActions = [];
+    currentPot = 0;
+  }
+
+  for (let line of actionHistory) {
+    line = String(line).trim();
+    if (!line) continue;
+
+    if (line.startsWith("#")) {
+      const content = line.slice(1).trim();
+      const mStreet = content.match(/^(PREFLOP|FLOP|TURN|RIVER)(?:\s+\((\d+\.?\d*)bb?\))?$/i);
+      if (mStreet) {
+        flush();
+        inResults = false;
+        currentStreet = mStreet[1].toLowerCase();
+        currentPot = mStreet[2] ? parseFloat(mStreet[2]) : 0;
+        continue;
+      }
+      const mWin = content.match(/^(\w[\w+]*)\s+wins\s+([\d.]+)bb?$/i);
+      if (mWin) {
+        const pos = mWin[1];
+        result.winners.push({ name: posToName[pos] || pos, amount_bb: parseFloat(mWin[2]) });
+        continue;
+      }
+      if (content.toUpperCase() === "RESULTS") {
+        flush();
+        inResults = true;
+        continue;
+      }
+      continue;
+    }
+
+    if (inResults) {
+      const mRake = line.match(/^Rake:\s*([\d.]+)bb?$/i);
+      if (mRake) result.rake_bb = parseFloat(mRake[1]);
+      continue; // プレイヤー結果行は handResults で取得済み
+    }
+
+    const parts = line.split(/\s+/);
+    if (parts.length < 2) continue;
+    const pos = parts[0];
+    const action = T4_ACTION_MAP[parts[1].toUpperCase()];
+    if (action && currentStreet) {
+      const entry = { position: pos, name: posToName[pos] || pos, action };
+      if ((action === "bet" || action === "raise" || action === "call" || action === "allin") && parts.length >= 3) {
+        entry.amount_bb = parseBb(parts[2]);
+      }
+      currentActions.push(entry);
+    }
+    // POST（ブラインド）は記録しない
+  }
+
+  if (currentStreet && currentActions.length) flush();
+
+  const raiseCount = streets.preflop.filter((a) => a.action === "raise").length;
+  return { streets, result, is_3bet_pot: raiseCount >= 2 };
+}
+
+// GTO-/scripts/hand_converter.py _calc_hero_investment の JS 移植。
+function calcHeroInvestment(streets, heroPos) {
+  let total = heroPos === "BB" ? 1.0 : heroPos === "SB" ? 0.5 : 0.0;
+
+  let facing = 1.0;
+  for (const a of streets.preflop || []) {
+    const amount = a.amount_bb || 0;
+    if ((a.action === "raise" || a.action === "bet") && amount > 0) facing = amount;
+    if (a.position === heroPos && (a.action === "raise" || a.action === "bet" || a.action === "call")) {
+      total = Math.max(total, amount > 0 ? amount : facing);
+    }
+  }
+
+  for (const key of ["flop", "turn", "river"]) {
+    const s = streets[key];
+    if (!s || typeof s !== "object") continue;
+    let stFacing = 0;
+    let stInvested = 0;
+    for (const a of s.actions || []) {
+      const amount = a.amount_bb || 0;
+      if ((a.action === "raise" || a.action === "bet") && amount > 0) stFacing = amount;
+      if (a.position === heroPos) {
+        if (a.action === "bet" || a.action === "raise") { stInvested = amount; stFacing = amount; }
+        else if (a.action === "call") stInvested = amount > 0 ? amount : stFacing;
+      }
+    }
+    total += stInvested;
+  }
+  return total;
 }
 
 // ---------------------------------------------------------------------------
