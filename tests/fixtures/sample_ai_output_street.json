@@ -1,0 +1,71 @@
+{
+  "valid_river_hand": {
+    "reached_turn": true,
+    "reached_river": true,
+    "expect_valid": true,
+    "entry": {
+      "id": 1,
+      "preflop_context": "COがRFI 2.5bb、BBがディフェンド。BBのレンジはKQs, ATo+, 22-44を含む広いコールレンジ。",
+      "flop_read": "Flop 9h5d2cでCOのCBetに対しBBはコール。BBのレンジはミドルペアとバックドアドローを保持する。",
+      "turn_read": "Turn KhでCOのレンジにKxのバリューが増える。BBはチェックコールでブラフキャッチャーを残す。",
+      "river_analysis": "River 7sでBTNのオーバーベットに対し、[GTO数学]の必要エクイティ=42%とMDF基準を踏まえてBBはコールが均衡。",
+      "opp_exploit": "COはリバーでover-betのbet頻度がGTOより高く、BBはブラフキャッチのcall頻度を上げて搾取できる。",
+      "kaizen": "このラインで十分"
+    }
+  },
+  "valid_flop_end_hand": {
+    "reached_turn": false,
+    "reached_river": false,
+    "expect_valid": true,
+    "entry": {
+      "id": 2,
+      "preflop_context": "BTNがRFI、SBが3bet。BTNはJTs, AQo+, 88-TTでコールする。",
+      "flop_read": "Flop Ah8c3dでSBのCBetにBTNがフォールド。SBのレンジはAxを最も多く保持する。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "SBはAハイボードでのCBet頻度が高く、BTNはraiseブラフの頻度を上げて搾取できる。",
+      "kaizen": "88-TTはフロートしてターンのcheckにbetする代替ラインがある"
+    }
+  },
+  "violation_mdf_on_flop": {
+    "reached_turn": true,
+    "reached_river": true,
+    "expect_valid": false,
+    "entry": {
+      "id": 3,
+      "preflop_context": "COがRFI、BBがディフェンド。",
+      "flop_read": "Flop 9h5d2cでBBはMDF基準67%を満たすためコールする。",
+      "turn_read": "Turn KhでBBはチェックコール。",
+      "river_analysis": "River 7sで[GTO数学]の必要エクイティ=42%を満たすためBBはコール。",
+      "opp_exploit": "COはbet頻度が高くBBはcallを増やして搾取できる。",
+      "kaizen": "このラインで十分"
+    }
+  },
+  "violation_hero_subject": {
+    "reached_turn": false,
+    "reached_river": false,
+    "expect_valid": false,
+    "entry": {
+      "id": 4,
+      "preflop_context": "ヒーローはCOからレイズし、相手はコールした。",
+      "flop_read": "ヒーローはCBetを打ち、相手はフォールドした。",
+      "turn_read": "",
+      "river_analysis": "",
+      "opp_exploit": "相手はfold頻度が高いのでbetを増やす。",
+      "kaizen": "このラインで十分"
+    }
+  },
+  "violation_missing_field": {
+    "reached_turn": true,
+    "reached_river": true,
+    "expect_valid": false,
+    "entry": {
+      "id": 5,
+      "preflop_context": "COがRFI、BBがディフェンド。",
+      "flop_read": "Flop 9h5d2cでBBはコール。",
+      "turn_read": "Turn KhでBBはチェックコール。",
+      "river_analysis": "River 7sで必要エクイティ=42%を満たすためBBはコール。",
+      "opp_exploit": "COはbet頻度が高い。"
+    }
+  }
+}

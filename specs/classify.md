@@ -1,8 +1,8 @@
 # specs/classify.md — ハンド分類定義
 
-**Status: 📝 Draft**
-**実装参考:** `GTO-/scripts/classify.py`, `GTO-/scripts/hand_converter.py`（旧9カテゴリ実装。nice_call/bad_callは新規）
-**対応テスト:** `tests/test_classify.py`
+**Status: ✅ 実装済み**（V1範囲。エクイティ判定はリバーのみ・フロップ/ターンは設計通りunknownに倒れる。ハンドJSON→分類入力の変換は `hand_converter` 相当として別途）
+**実装:** `scripts/classify.py`（分類フロー・判定機構）+ `scripts/equity.py`（レンジ区間モデル）
+**対応テスト:** `tests/test_classify.py`, `tests/test_equity.py`
 
 ---
 
@@ -97,12 +97,38 @@
 
 ### GTOスコア判定（コール/フォールド共通機構）
 
-- フォールド側: 旧 `GTO-/scripts/classify.py` のtreysベース判定を踏襲
-- コール側: 同一機構を適用する。V1のヒューリスティック:
-  必要エクイティ（`specs/gto_math.md` §2 DEFENDER系）に対して、Heroハンドのボード上の強さ（treys評価）が
-  閾値を上回るか下回るかで正解/不正解を判定。確信が持てない中間帯は**判定困難に倒す**
+- フォールド側・コール側とも同一機構（下記V1アルゴリズム）で「コールが正解か」を判定し、
+  フォールド側は反転して解釈する（コール正解のフォールド = bad_fold）
 - **判定困難への倒し方は保守的にする**: 誤って「正解」と言えばナイスプレイの信頼が壊れ、
   誤って「不正解」と言えば改善チャンスの信頼が壊れる。迷ったら warn
+
+#### V1 アルゴリズム — レンジ区間モデル（`scripts/equity.py`）
+
+**対象はリバーの判断のみ。** フロップ/ターンはエクイティが未確定で、静的ヒューリスティックは
+誤判定リスクが高いため、V1では常に判定困難（unknown）を返す（`specs/gto_math.md` §1 の
+「リバーのみエクイティ確定」と同じ思想）。
+
+```
+INPUT:  hero_cards（2枚）, board（5枚）, required_equity（specs/gto_math.md §2 DEFENDER系）
+OUTPUT: verdict ∈ {correct, incorrect, unknown}
+
+1. 残り45枚から相手の2枚コンボ C(45,2)=990 通りを列挙し、
+   treys評価でボード上の強さ順にランクする（全列挙・乱数なし）
+2. 相手のベットレンジは不明なので、単一の推定でなく「もっともらしいレンジ族」に対する
+   エクイティ区間を計算する:
+     - 楽観バウンド = 全コンボ均一レンジ（最大ブラフ想定）に対するエクイティ
+     - 悲観バウンド = 強い順に上位1/3のレンジ（バリュー寄り想定）に対するエクイティ
+     equity(range) = (勝ちコンボ数 + 0.5×引き分け) ÷ |range|
+3. 区間全体が必要エクイティの同じ側にあるときだけ断定する（margin = 0.10）:
+     - 悲観バウンド ≥ required + margin → correct
+       （= 強いレンジを想定してもコールは浮く）
+     - 楽観バウンド ≤ required − margin → incorrect
+       （= 最大限ブラフを想定してもコールは沈む）
+     - それ以外 → unknown（区間が跨ぐ = 相手レンジの想定次第で答えが変わる）
+```
+
+定数: `PESSIMISTIC_TOP_FRACTION = 1/3`, `JUDGE_MARGIN = 0.10`（`scripts/classify.py` と共有）。
+依存: `treys`（純Python。CI: `.github/workflows/test.yml` でインストール）。
 
 ---
 
@@ -148,6 +174,18 @@
 | フォールド・判定困難 | fold_unknown | warn |
 | プリフロップのみ | preflop_only | preflop_only |
 
+### GTOスコア判定（レンジ区間モデル・`tests/test_equity.py`）
+
+| 入力（リバー・required=必要エクイティ） | 期待verdict |
+|---|---|
+| クワッズ（AhAd / As Ac 7d 5h 2c）, required=0.42 | correct |
+| トップペア好キッカー（KdJd / Ks Qd 9c 8s 2h）, required=0.42 | correct |
+| ミドルペア（8d7d / Ks Qd 9c 8s 2h）, required=0.35 | unknown（区間が跨ぐ） |
+| 4ハイ（4d3h / Ks Qd 9c 8s 2h）, required=0.30 | incorrect |
+| ボードが5枚未満（リバー未到達） | unknown（V1はリバーのみ判定） |
+| 任意の入力 | 悲観バウンド ≤ 楽観バウンド（区間の整合性） |
+| required が None | unknown |
+
 ## 変更履歴
 
 - **HrepNext初版:**
@@ -157,3 +195,18 @@
      「負けたが正しかったコール」をナイスプレイ候補に昇格（§0の設計原則）。
      `call_lost` は「判定困難なコール負け（warn）」に再定義。
   3. `bluff_catch` のナイスプレイ対象に「GTO判定=不正解なら除外」条件を追加（幸運なコールの誤称賛防止）。
+- **2026-07-03 実装（`scripts/classify.py`）:**
+  1. §3の分類フローと GTOスコア判定機構（`judge_call_correctness`: 必要エクイティ±0.10の
+     中間帯は判定困難に倒す）を実装。§5受入基準は全件テスト済み。
+  2. treys評価によるHeroハンド強度（`hero_equity`）の算出は未実装。実装までは
+     verdict=unknown（warn）に倒れるため、誤称賛・誤指摘は発生しない（保守的側に安全）。
+- **2026-07-03 実装（`scripts/equity.py`）— GTOスコア判定のV1アルゴリズムを具体化:**
+  1. 単一の `hero_equity` 点推定でなく**レンジ区間モデル**を採用。相手のベットレンジは
+     不明なので、悲観バウンド（上位1/3レンジ）と楽観バウンド（均一レンジ）の区間を計算し、
+     区間全体が必要エクイティの同じ側にあるときだけ断定する。跨いだらunknown。
+     旧SPECの「閾値を上回るか下回るか」より保守的で、誤称賛・誤指摘の両方を構造的に防ぐ。
+  2. **V1はリバーのみ判定**とした。フロップ/ターンはエクイティ未確定で静的判定の
+     誤りリスクが高いため常にunknown（`specs/gto_math.md` §1「リバーのみエクイティ確定」と同思想）。
+     結果: nice_fold/bad_fold/nice_call/bad_call はV1ではリバーの判断にのみ付与される。
+  3. 全列挙（C(45,2)=990コンボ・乱数なし）で決定的。依存に treys を追加
+     （純Python・CI変更は `.github/workflows/test.yml` と `tests/PLAN.md` に反映済み）。

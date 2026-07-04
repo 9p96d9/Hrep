@@ -1,6 +1,6 @@
 # specs/ai_analysis.md — AI解析システム仕様
 
-**Status: 📝 Draft**
+**Status: 🔄 実装中**（純粋関数層は実装・テスト済み: §8バリデーター=`scripts/ai_output_validator.py`、§2プロバイダー判定・§3プロンプト生成・応答パーサー=`scripts/ai_prompt.py`。残り: 実際のAPI呼び出し層＝Cloud Run側・`explain`/`detail`モード）
 **実装参考:** `GTO-/scripts/analyze2.py`（旧`detail`実装。`detail_street`は新規実装）
 **対応テスト:** `tests/test_ai_output.py`
 
@@ -190,3 +190,10 @@ AIはこのブロックの数値を再計算せず、そのまま引用して解
 
 - **HrepNext初版:** `detail_street` をDraft付録から正式版（§3）に昇格。`standard`モードを削除。
   Fable 5実験の位置づけを§2に明記（SPEC外）。
+- **2026-07-03 実装（`scripts/ai_output_validator.py`）:** §8の `detail_street` 受入基準を
+  バリデーター（純粋関数）として実装。turn/river到達判定はAI出力でなくハンドデータ側から
+  与える設計。本番のAI出力受入ゲートとしてもこの関数を再利用する（tests/PLAN.md）。
+- **2026-07-04 実装（`scripts/ai_prompt.py`）:** §2プロバイダー判定（優先順位含む）、
+  §3 `detail_street` バッチプロンプト生成（§6品質ルール・§7[GTO数学]そのまま引用を
+  システムプロンプトに埋め込み）、応答JSONパーサー（コードフェンス許容）を純粋関数で実装。
+  AI SDKはimportしない。API呼び出し層はCloud Run実装時に接続する。

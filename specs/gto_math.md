@@ -1,7 +1,7 @@
 # specs/gto_math.md — GTO数学・スコア定義
 
-**Status: 📝 Draft**
-**実装参考:** `GTO-/scripts/analyze2.py` (`_compute_gto_math`, `_compute_difficulty`, `_compute_nice_play_score`)
+**Status: ✅ 実装済み**
+**実装:** `scripts/gto_math.py`（実装参考: `GTO-/scripts/analyze2.py`）
 **対応テスト:** `tests/test_gto_math.py`
 
 ---
@@ -35,7 +35,9 @@ MDF        = 1 − α
 ```
 INPUT:  相手のbet/raise額、Heroの投資額、ポット
 OUTPUT: 必要エクイティ = net_call ÷ (pot_before_call + net_call)
-表示例: "[GTO数学] ブラフキャッチスポット | リバー | 必要エクイティ=33%"
+表示例: "[GTO数学] ブラフキャッチスポット | リバー | 必要エクイティ=33%（α=33%）"
+※ 末尾の（α=XX%）は難易度スコアのα微補正が extract_alpha で拾うための併記
+  （net_call=bet のとき必要エクイティとαは同値になる）
 ```
 
 ### AGGRESSOR系（hero_aggression_won / value_success / bluff_failed）
@@ -155,7 +157,7 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
 
 | 入力 | 期待値 |
 |---|---|
-| bluff_catch × river, α=0.45 | difficulty ≈ 0.90〜0.92, nice_play_score ≥ 0.5 |
+| bluff_catch × river, α=0.45 | difficulty ≈ 0.94（0.90 + α微補正0.04）, nice_play_score ≥ 0.5 |
 | bluff_catch × turn | difficulty ≈ 0.72, nice_play_score ≥ 0.5 |
 | **nice_call × river** | **difficulty ≈ 0.90, nice_play_score ≥ 0.5（損益マイナスでも対象）** |
 | **bluff_catch × river（GTO判定=不正解）** | **nice_play_score = 0.0（幸運なコールは除外）** |
@@ -176,3 +178,11 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
   2. **`nice_call`（0.90）・`bad_call`（0.30）を追加**し、ナイスプレイ対象を
      {bluff_catch, nice_call, nice_fold} に拡張。bluff_catchに幸運コール除外条件を追加。
      `call_lost` は判定困難扱いに再定義し 0.30 → 0.25。
+- **2026-07-03 実装（`scripts/gto_math.py`）:**
+  1. 受入基準の「bluff_catch × river, α=0.45 → ≈ 0.90〜0.92」を **≈ 0.94** に訂正。
+     §3の式（α=0.45 → indifference=0.9 → 補正+0.04）と矛盾していたため、式を正とした。
+  2. `compute_gto_math` の DEFENDER系 `pot_before_call` は「betを含まないポット」と定義
+     （tests/PLAN.md fixture例 pot=28, bet=20 → 必要エクイティ=42% に一致させた）。
+- **2026-07-04（hand_converter接続）:** DEFENDER系の出力に（α=XX%）を併記。
+  難易度スコアのα微補正は gto_math 文字列からの抽出（§3）なので、併記しないと
+  DEFENDER系スポットに補正が一切効かなかった。tests/PLAN.md のfixture例と同形式。
