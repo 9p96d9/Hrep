@@ -174,3 +174,32 @@ def select_nice_plays(hands: list[dict], score_key: str = "nice_play_score") -> 
     candidates = [h for h in hands if h.get(score_key, 0.0) >= NICE_PLAY_THRESHOLD]
     candidates.sort(key=lambda h: h[score_key], reverse=True)
     return candidates[:NICE_PLAY_MAX_COUNT]
+
+
+# ---------------------------------------------------------------------------
+# §4b 改善チャンス選定（V1）
+
+# bluff_failed は対象外（ブラフの一定頻度の失敗は均衡）。warn系は判定未確定なので指摘しない。
+IMPROVE_CHANCE_CATEGORIES = frozenset({"bad_fold", "bad_call"})
+IMPROVE_CHANCE_MAX_COUNT = 3
+
+
+def select_improve_chances(hands: list[dict]) -> list[dict]:
+    """改善チャンスを river → turn → flop、同ストリート内はポット降順で最大3件返す。
+
+    難易度スコア順にしない（bad系の基礎スコアは一律0.30で順位がつかない）。
+    0件なら空リスト（UIは「今日の改善チャンス: 0件」を正直に表示する）。
+    hands は annotate_hand の出力（decision_street / decision_pot_bb）をマージ済みであること。
+    """
+    candidates = [
+        h for h in hands
+        if (h.get("bluered_classification") or {}).get("category") in IMPROVE_CHANCE_CATEGORIES
+    ]
+    candidates.sort(
+        key=lambda h: (
+            STREET_WEIGHTS.get(h.get("decision_street"), 0.0),
+            h.get("decision_pot_bb") or 0.0,
+        ),
+        reverse=True,
+    )
+    return candidates[:IMPROVE_CHANCE_MAX_COUNT]

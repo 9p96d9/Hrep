@@ -193,6 +193,9 @@ AIはこのブロックの数値を再計算せず、そのまま引用して解
 - **2026-07-03 実装（`scripts/ai_output_validator.py`）:** §8の `detail_street` 受入基準を
   バリデーター（純粋関数）として実装。turn/river到達判定はAI出力でなくハンドデータ側から
   与える設計。本番のAI出力受入ゲートとしてもこの関数を再利用する（tests/PLAN.md）。
+- **2026-07-04 実装2（explain）:** §5 explainモードのプロンプト生成 `build_explain_prompt` を実装。
+  §6品質ルールを `QUALITY_RULES_BLOCK` に共通化し detail_street と explain の両システムプロンプトで共有。
+  残り: API呼び出し層（Cloud Run側）と旧 `detail` モード（移行期間のみ・優先度低）。
 - **2026-07-04 実装（`scripts/ai_prompt.py`）:** §2プロバイダー判定（優先順位含む）、
   §3 `detail_street` バッチプロンプト生成（§6品質ルール・§7[GTO数学]そのまま引用を
   システムプロンプトに埋め込み）、応答JSONパーサー（コードフェンス許容）を純粋関数で実装。

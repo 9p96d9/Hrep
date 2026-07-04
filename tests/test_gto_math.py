@@ -8,6 +8,7 @@ from scripts.gto_math import (
     compute_gto_math,
     compute_nice_play_score,
     extract_alpha,
+    select_improve_chances,
     select_nice_plays,
 )
 
@@ -115,6 +116,58 @@ def test_zero_candidates_returns_empty_list():
     below = [{"id": 1, "nice_play_score": 0.0}, {"id": 2, "nice_play_score": 0.36}]
     assert select_nice_plays(below) == []
     assert NICE_PLAY_THRESHOLD == 0.5
+
+
+# ---------------------------------------------------------------------------
+# §4b 改善チャンス選定
+
+
+def _ic_hand(hand_id, category, street, pot):
+    return {
+        "id": hand_id,
+        "bluered_classification": {"category": category},
+        "decision_street": street,
+        "decision_pot_bb": pot,
+    }
+
+
+def test_improve_chances_street_priority_over_pot():
+    # river が turn より先（ポットが小さくても）
+    hands = [
+        _ic_hand(1, "bad_fold", "turn", 40.0),
+        _ic_hand(2, "bad_call", "river", 10.0),
+    ]
+    assert [h["id"] for h in select_improve_chances(hands)] == [2, 1]
+
+
+def test_improve_chances_pot_desc_within_street():
+    hands = [
+        _ic_hand(1, "bad_call", "river", 12.0),
+        _ic_hand(2, "bad_call", "river", 30.0),
+    ]
+    assert [h["id"] for h in select_improve_chances(hands)] == [2, 1]
+
+
+def test_improve_chances_excludes_non_target_categories():
+    # bluff_failed（均衡上の失敗）・warn系（判定未確定）・gray は指摘しない
+    hands = [
+        _ic_hand(1, "bluff_failed", "river", 50.0),
+        _ic_hand(2, "call_lost", "river", 50.0),
+        _ic_hand(3, "fold_unknown", "river", 50.0),
+        _ic_hand(4, "nice_fold", "river", 50.0),
+    ]
+    assert select_improve_chances(hands) == []
+
+
+def test_improve_chances_max_three():
+    hands = [_ic_hand(i, "bad_call", "river", float(i)) for i in range(1, 6)]
+    selected = select_improve_chances(hands)
+    assert len(selected) == 3
+    assert [h["id"] for h in selected] == [5, 4, 3]
+
+
+def test_improve_chances_zero_candidates_returns_empty_list():
+    assert select_improve_chances([]) == []
 
 
 # ---------------------------------------------------------------------------

@@ -131,6 +131,34 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
 ※ `nice_call`（負けたが正しかったコール）は損益がマイナスのままナイスプレイに載る。
   これが「結果と判断の分離」の最も強い実演であり、このセクションの存在意義。
 
+## 4b. 改善チャンス選定（V1）
+
+**UI仕様は `docs/features/improve_chances.md` が正。ここは選定ロジック（純粋関数）の定義。**
+
+```
+対象カテゴリ: {bad_fold, bad_call} のみ
+  ※ bluff_failed は対象外（ブラフの一定頻度の失敗は均衡であり「間違い」ではない）
+  ※ call_lost / fold_unknown（warn）は対象外（判定未確定を指摘しない — Must Not）
+表示順序: ストリートウェイト降順（river → turn → flop）、同ストリート内はポット額(bb)降順
+  ※ 難易度スコア順にしない（bad系の基礎スコアは一律0.30で順位がつかない）
+最大表示件数: 3件
+0件の場合: 空リストを返す（UIは「今日の改善チャンス: 0件」を正直に表示）
+INPUT: annotate_hand 出力をマージ済みのハンドdictリスト
+  （decision_street / decision_pot_bb / bluered_classification.category を使用）
+```
+
+### 受入基準（= テストケース）
+
+| 入力 | 期待値 |
+|---|---|
+| bad_fold(turn) と bad_call(river) | river が先（ストリート優先） |
+| 同ストリートの bad_call 2件（pot 30bb / 12bb） | pot 30bb が先 |
+| bluff_failed / call_lost / fold_unknown / nice_fold | 選定対象外 |
+| 対象4件以上 | 上位3件のみ |
+| 対象0件 | 空リスト（セクション非表示にはしない） |
+
+---
+
 ### V2以降の拡張候補（未実装）
 
 #### `hero_aggression_won` リバー限定追加
@@ -183,6 +211,9 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
      §3の式（α=0.45 → indifference=0.9 → 補正+0.04）と矛盾していたため、式を正とした。
   2. `compute_gto_math` の DEFENDER系 `pot_before_call` は「betを含まないポット」と定義
      （tests/PLAN.md fixture例 pot=28, bet=20 → 必要エクイティ=42% に一致させた）。
+- **2026-07-04（§4b追加）:** 改善チャンス選定を純粋関数 `select_improve_chances` としてSPEC化・実装。
+  UI仕様（docs/features/improve_chances.md）の選定規則（bad_fold/bad_call のみ・
+  river→turn→flop→ポット降順・最大3件・0件は空リスト）をコード側の正とした。
 - **2026-07-04（hand_converter接続）:** DEFENDER系の出力に（α=XX%）を併記。
   難易度スコアのα微補正は gto_math 文字列からの抽出（§3）なので、併記しないと
   DEFENDER系スポットに補正が一切効かなかった。tests/PLAN.md のfixture例と同形式。

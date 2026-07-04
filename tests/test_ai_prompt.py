@@ -6,9 +6,12 @@ import pytest
 
 from scripts.ai_prompt import (
     DETAIL_STREET_SYSTEM_PROMPT,
+    EXPLAIN_SYSTEM_PROMPT,
     GEMINI_MODEL,
     GROQ_MODEL,
+    QUALITY_RULES_BLOCK,
     build_detail_street_prompt,
+    build_explain_prompt,
     detect_provider,
     parse_detail_street_response,
     street_reached,
@@ -117,6 +120,29 @@ def test_street_reached():
     assert street_reached(RIVER_HAND) == "river"
     assert street_reached(FLOP_END_HAND) == "flop"
     assert street_reached({"streets": {"preflop": []}}) == "preflop"
+
+
+# ---------------------------------------------------------------------------
+# §5 explain モード
+
+
+def test_explain_system_prompt_has_required_sections():
+    for keyword in ("均衡レンジ", "GTO数学的観点", "相手レンジの変化", "搾取戦略", "代替ライン"):
+        assert keyword in EXPLAIN_SYSTEM_PROMPT
+    assert "400〜1200文字" in EXPLAIN_SYSTEM_PROMPT
+
+
+def test_quality_rules_shared_across_modes():
+    # §6は全モード共通・厳守 — 両システムプロンプトが同一ブロックを含む
+    assert QUALITY_RULES_BLOCK in DETAIL_STREET_SYSTEM_PROMPT
+    assert QUALITY_RULES_BLOCK in EXPLAIN_SYSTEM_PROMPT
+    assert "MDF はリバーのみ言及する" in QUALITY_RULES_BLOCK
+
+
+def test_explain_user_prompt_quotes_gto_math_verbatim():
+    _, user = build_explain_prompt(RIVER_HAND)
+    assert RIVER_HAND["gto_math"] in user
+    assert "BB" in user
 
 
 # ---------------------------------------------------------------------------

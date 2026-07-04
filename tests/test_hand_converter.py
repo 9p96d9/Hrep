@@ -186,6 +186,26 @@ def test_scores_match_gto_math_spec():
     assert out["nice_play_score"] == pytest.approx(expected, abs=1e-6)
 
 
+def test_decision_street_and_pot_in_output():
+    # 改善チャンス選定（specs/gto_math.md §4b）が使うフィールド
+    hand = _hand([
+        {"position": "BTN", "action": "bet", "amount_bb": 20.0},
+        {"position": "BB", "action": "call", "amount_bb": 20.0},
+    ])
+    out = annotate_hand(hand)
+    assert out["decision_street"] == "river"
+    assert out["decision_pot_bb"] == pytest.approx(28.0)
+
+    pf = {
+        "hero_position": "SB",
+        "hero_result_bb": -0.5,
+        "streets": {"preflop": [{"position": "SB", "action": "fold"}]},
+    }
+    out_pf = annotate_hand(pf)
+    assert out_pf["decision_street"] == "preflop"
+    assert out_pf["decision_pot_bb"] == 0.0
+
+
 def test_input_hand_is_not_mutated():
     hand = _hand([
         {"position": "BTN", "action": "bet", "amount_bb": 20.0},
