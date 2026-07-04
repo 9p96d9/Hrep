@@ -27,7 +27,8 @@ from services import ai_providers, firestore_store as store
 app = Flask(__name__)
 
 # /static/classify_result.js?v=YYYYMMDD — 変更時に必ず更新する（docs/features/classify_result.md）
-STATIC_VERSION = "20260704"
+# 同日内の再変更はサフィックスで区別する（-2, -3, …）
+STATIC_VERSION = "20260704-2"
 
 SUIT_META = {"s": ("♠", "#ccc"), "c": ("♣", "#4caf93"), "h": ("♥", "#e94560"), "d": ("♦", "#5b9bd5")}
 
@@ -244,6 +245,7 @@ def result_page(analysis_id):
         return render_template("classify_result.html", analysis_id=analysis_id,
                                hands=[], summary=_summary([]), category_counts={},
                                nice_plays=[], improve_chances=[], ev_diffs=None,
+                               position_stats=[], chip_series=[],
                                static_version=STATIC_VERSION)
     docs = store.get_hands(analysis_id)
     hands = [d.get("hand_json") or {} for d in docs]
@@ -258,6 +260,8 @@ def result_page(analysis_id):
         nice_plays=select_nice_plays(hands),
         improve_chances=select_improve_chances(hands),
         ev_diffs=ev_diffs,
+        position_stats=_position_stats(hands),
+        chip_series=_chip_series(hands),
         static_version=STATIC_VERSION,
     )
 
@@ -270,6 +274,34 @@ def _summary(hands: list) -> dict:
         "red": lines.count("red"),
         "preflop_only": lines.count("preflop_only"),
     }
+
+
+POSITION_ORDER = ["UTG", "HJ", "CO", "BTN", "SB", "BB"]
+
+
+def _position_stats(hands: list) -> list:
+    """タブ②ポジション別: ハンド数と損益合計（UTG→BB の配列順）。"""
+    stats: dict = {}
+    for h in hands:
+        pos = h.get("hero_position") or "?"
+        s = stats.setdefault(pos, {"position": pos, "count": 0, "pl": 0.0})
+        s["count"] += 1
+        s["pl"] += h.get("hero_result_bb") or 0.0
+    ordered = [stats[p] for p in POSITION_ORDER if p in stats]
+    ordered += [s for p, s in stats.items() if p not in POSITION_ORDER]
+    for s in ordered:
+        s["pl"] = round(s["pl"], 2)
+    return ordered
+
+
+def _chip_series(hands: list) -> list:
+    """タブ③チップ推移: ハンド順の累積損益（bb）。"""
+    cum = 0.0
+    series = []
+    for h in hands:
+        cum += h.get("hero_result_bb") or 0.0
+        series.append({"hand_number": h.get("hand_number"), "cum": round(cum, 2)})
+    return series
 
 
 def _category_counts(hands: list) -> dict:

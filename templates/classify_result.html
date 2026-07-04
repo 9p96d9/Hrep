@@ -41,6 +41,14 @@
   .cart-item { display:flex; justify-content:space-between; padding:4px 0;
                border-bottom:1px solid #2a323d; font-size:12px; }
   .in-cart { outline:1px solid var(--blue); }
+  .pos-table { border-collapse:collapse; width:100%; font-size:13px; }
+  .pos-table th { text-align:left; color:var(--sub); font-weight:normal; font-size:12px;
+                  padding:4px 12px 4px 0; border-bottom:1px solid #2a323d; }
+  .pos-table td { padding:5px 12px 5px 0; border-bottom:1px solid #232b35; }
+  #chip-chart svg { display:block; width:100%; height:auto; }
+  .chart-tooltip { position:fixed; pointer-events:none; background:#232b35;
+                   border:1px solid #3a4450; border-radius:6px; padding:5px 8px;
+                   font-size:12px; z-index:30; }
 </style>
 {% endblock %}
 {% block content %}
@@ -188,10 +196,42 @@
 </div>
 
 <div id="tab-position" class="tab-panel hidden">
-  <div class="panel sub">ポジション別ビュー（V1スキャフォールド: 未実装）</div>
+  {% if position_stats %}
+  <div class="panel">
+    <table class="pos-table">
+      <thead><tr><th>ポジション</th><th>ハンド数</th><th>損益合計</th></tr></thead>
+      <tbody>
+        {% for s in position_stats %}
+        <tr>
+          <td><strong>{{ s.position }}</strong></td>
+          <td>{{ s.count }}</td>
+          <td class="{{ 'pl-pos' if s.pl > 0 else 'pl-neg' if s.pl < 0 else '' }}">{{ s.pl | pl_fmt }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="panel sub">表示できるハンドがありません。</div>
+  {% endif %}
 </div>
 <div id="tab-chips" class="tab-panel hidden">
-  <div class="panel sub">チップ推移ビュー（V1スキャフォールド: 未実装）</div>
+  <div class="panel">
+    <h2>チップ推移（累積損益 bb）</h2>
+    <div id="chip-chart" aria-label="ハンド順の累積損益ラインチャート"></div>
+    <div id="chip-tooltip" class="chart-tooltip" hidden></div>
+    <details>
+      <summary class="sub">データテーブル表示</summary>
+      <table class="pos-table">
+        <thead><tr><th>ハンド</th><th>累積損益</th></tr></thead>
+        <tbody>
+          {% for p in chip_series %}
+          <tr><td>H{{ p.hand_number }}</td><td>{{ p.cum | pl_fmt }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
 </div>
 
 <footer class="sticky">
@@ -214,6 +254,9 @@
 
 {% endblock %}
 {% block scripts %}
-<script>window.ANALYSIS_ID = {{ analysis_id | tojson }};</script>
+<script>
+window.ANALYSIS_ID = {{ analysis_id | tojson }};
+window.CHIP_SERIES = {{ chip_series | tojson }};
+</script>
 <script src="/static/classify_result.js?v={{ static_version }}"></script>
 {% endblock %}

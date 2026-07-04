@@ -10,14 +10,21 @@
   function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
   /* ---- タブ ---- */
+  function activateTab(tabId) {
+    var btn = $('.tab-btn[data-tab="' + tabId + '"]');
+    if (!btn) return;
+    $all(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    $all(".tab-panel").forEach(function (p) { p.classList.add("hidden"); });
+    $("#" + tabId).classList.remove("hidden");
+    if (tabId === "tab-chips") renderChipChart();
+  }
   $all(".tab-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      $all(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
-      btn.classList.add("active");
-      $all(".tab-panel").forEach(function (p) { p.classList.add("hidden"); });
-      $("#" + btn.dataset.tab).classList.remove("hidden");
-    });
+    btn.addEventListener("click", function () { activateTab(btn.dataset.tab); });
   });
+  if (location.hash && $(location.hash + ".tab-panel")) {
+    activateTab(location.hash.slice(1));
+  }
 
   /* ---- フィルター（カテゴリグリッドとフィルターバーは排他） ---- */
   function applyFilter(fn) {
@@ -106,6 +113,103 @@
       e.target.closest(".ai-panel").classList.toggle("open");
     }
   });
+
+  /* ---- チップ推移チャート（単一系列ライン・凡例なし・ホバー付き） ---- */
+  var chipChartRendered = false;
+  function renderChipChart() {
+    if (chipChartRendered) return;
+    var series = window.CHIP_SERIES || [];
+    var host = $("#chip-chart");
+    if (!host) return;
+    if (series.length < 2) {
+      host.innerHTML = '<div class="sub">チャート表示には2ハンド以上が必要です。</div>';
+      chipChartRendered = true;
+      return;
+    }
+    chipChartRendered = true;
+
+    var W = 720, H = 260, PAD = { top: 12, right: 16, bottom: 26, left: 48 };
+    var innerW = W - PAD.left - PAD.right, innerH = H - PAD.top - PAD.bottom;
+    var LINE = "#3987e5"; // ダークサーフェス上で検証済み（lightness band / contrast PASS）
+    var GRID = "#2a323d", TEXT = "#9aa4af";
+
+    var vals = series.map(function (p) { return p.cum; });
+    var yMin = Math.min(0, Math.min.apply(null, vals));
+    var yMax = Math.max(0, Math.max.apply(null, vals));
+    if (yMax === yMin) { yMax += 1; yMin -= 1; }
+    var yPadding = (yMax - yMin) * 0.08;
+    yMin -= yPadding; yMax += yPadding;
+
+    function x(i) { return PAD.left + (i / (series.length - 1)) * innerW; }
+    function y(v) { return PAD.top + (1 - (v - yMin) / (yMax - yMin)) * innerH; }
+
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+
+    function el(tag, attrs, text) {
+      var node = document.createElementNS(ns, tag);
+      Object.keys(attrs).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+      if (text !== undefined) node.textContent = text;
+      svg.appendChild(node);
+      return node;
+    }
+
+    // 控えめなグリッド + yラベル（4本）
+    for (var t = 0; t <= 3; t++) {
+      var v = yMin + ((yMax - yMin) * t) / 3;
+      el("line", { x1: PAD.left, x2: W - PAD.right, y1: y(v), y2: y(v),
+                   stroke: GRID, "stroke-width": 1 });
+      el("text", { x: PAD.left - 6, y: y(v) + 4, "text-anchor": "end",
+                   fill: TEXT, "font-size": 11 }, v.toFixed(0) + "bb");
+    }
+    // ゼロ基準線（損益の正負の境界）
+    if (yMin < 0 && yMax > 0) {
+      el("line", { x1: PAD.left, x2: W - PAD.right, y1: y(0), y2: y(0),
+                   stroke: TEXT, "stroke-width": 1, "stroke-dasharray": "4 3" });
+    }
+    // xラベル（先頭・中間・末尾のみ）
+    [0, Math.floor((series.length - 1) / 2), series.length - 1].forEach(function (i) {
+      el("text", { x: x(i), y: H - 8, "text-anchor": "middle",
+                   fill: TEXT, "font-size": 11 }, "H" + series[i].hand_number);
+    });
+    // データライン（2px）
+    var d = series.map(function (p, i) {
+      return (i === 0 ? "M" : "L") + x(i).toFixed(1) + " " + y(p.cum).toFixed(1);
+    }).join(" ");
+    el("path", { d: d, fill: "none", stroke: LINE, "stroke-width": 2,
+                 "stroke-linejoin": "round", "stroke-linecap": "round" });
+
+    // ホバー: クロスヘア + マーカー + ツールチップ
+    var crosshair = el("line", { x1: 0, x2: 0, y1: PAD.top, y2: H - PAD.bottom,
+                                 stroke: TEXT, "stroke-width": 1, opacity: 0 });
+    var marker = el("circle", { r: 4, fill: LINE, stroke: "#1a2028",
+                                "stroke-width": 2, opacity: 0 });
+    var tooltip = $("#chip-tooltip");
+    svg.addEventListener("mousemove", function (e) {
+      var rect = svg.getBoundingClientRect();
+      var px = ((e.clientX - rect.left) / rect.width) * W;
+      var i = Math.round(((px - PAD.left) / innerW) * (series.length - 1));
+      i = Math.max(0, Math.min(series.length - 1, i));
+      crosshair.setAttribute("x1", x(i)); crosshair.setAttribute("x2", x(i));
+      crosshair.setAttribute("opacity", 0.4);
+      marker.setAttribute("cx", x(i)); marker.setAttribute("cy", y(series[i].cum));
+      marker.setAttribute("opacity", 1);
+      tooltip.hidden = false;
+      tooltip.textContent = "H" + series[i].hand_number + ": " +
+        (series[i].cum > 0 ? "+" : "") + series[i].cum.toFixed(1) + "bb";
+      tooltip.style.left = (e.clientX + 12) + "px";
+      tooltip.style.top = (e.clientY - 28) + "px";
+    });
+    svg.addEventListener("mouseleave", function () {
+      crosshair.setAttribute("opacity", 0);
+      marker.setAttribute("opacity", 0);
+      tooltip.hidden = true;
+    });
+
+    host.appendChild(svg);
+  }
 
   /* ---- カート ---- */
   function refreshCart() {
