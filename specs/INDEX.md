@@ -19,7 +19,7 @@ Claude が実装作業を始める前に、このファイルを読んで該当S
 |---|---|---|---|
 | `specs/gto_math.md` | α・MDF・難易度スコア・ナイスプレイ判定 | ✅ 実装済み（`scripts/gto_math.py`） | `tests/test_gto_math.py` |
 | `specs/classify.md` | 11カテゴリ定義・ライン分類ルール・GTOスコア判定 | ✅ 実装済み（`scripts/classify.py` + `scripts/equity.py`。判定はリバーのみ＝設計判断） | `tests/test_classify.py`, `tests/test_equity.py` |
-| `specs/ai_analysis.md` | AIプロンプト仕様・`detail_street`出力・品質ルール | 🔄 実装中（§8バリデーターのみ: `scripts/ai_output_validator.py`） | `tests/test_ai_output.py` |
+| `specs/ai_analysis.md` | AIプロンプト仕様・`detail_street`出力・品質ルール | 🔄 実装中（純粋関数層は完了: `scripts/ai_prompt.py` + `scripts/ai_output_validator.py`。API呼び出し層が未実装） | `tests/test_ai_output.py`, `tests/test_ai_prompt.py` |
 | `specs/hand_converter.md` | ハンドJSON→分類・スコア変換パイプライン | ✅ 実装済み（`scripts/hand_converter.py`） | `tests/test_hand_converter.py` |
 
 ---
