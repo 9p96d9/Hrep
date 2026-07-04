@@ -79,9 +79,11 @@ def compute_gto_math(
 
     if category in DEFENDER_CATEGORIES:
         # tests/PLAN.md fixture例: pot=28, bet=20 → 必要エクイティ=42%（= 20÷48）
+        # （α=XX%）併記は難易度スコアのα微補正が extract_alpha で拾うため（§3）
         net_call = bet_bb if call_bb is None else call_bb
         req = required_equity(net_call, pot_bb)
-        return f"{head} | 必要エクイティ={_pct(req)}"
+        a = alpha(bet_bb, pot_bb)
+        return f"{head} | 必要エクイティ={_pct(req)}（α={_pct(a)}）"
 
     if category in AGGRESSOR_CATEGORIES:
         a = alpha(bet_bb, pot_bb)

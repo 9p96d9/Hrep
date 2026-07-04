@@ -7,9 +7,17 @@
     },
     "streets": {
       "river": {
-        "board": ["7s"],
+        "board": [
+          "7s"
+        ],
         "pot_bb": 28.0,
-        "actions": [{"position": "BTN", "action": "bet", "amount_bb": 20.0}]
+        "actions": [
+          {
+            "position": "BTN",
+            "action": "bet",
+            "amount_bb": 20.0
+          }
+        ]
       }
     },
     "hero_position": "BB",
@@ -32,7 +40,7 @@
     },
     "hero_position": "BB",
     "hero_result_bb": -22.0,
-    "gto_math": "[GTO数学] ナイスコールスポット | リバー | 必要エクイティ=31%"
+    "gto_math": "[GTO数学] ナイスコールスポット | リバー | 必要エクイティ=31%（α=31%）"
   },
   "nice_fold_river": {
     "bluered_classification": {
@@ -69,7 +77,7 @@
     },
     "hero_position": "MP",
     "hero_result_bb": -18.0,
-    "gto_math": "[GTO数学] バッドコールスポット | リバー | 必要エクイティ=38%"
+    "gto_math": "[GTO数学] バッドコールスポット | リバー | 必要エクイティ=38%（α=38%）"
   },
   "bad_fold_turn": {
     "bluered_classification": {
@@ -87,7 +95,7 @@
       "line": "warn"
     },
     "hero_position": "HJ",
-    "gto_math": "[GTO数学] コールスポット | ターン | 必要エクイティ=25%"
+    "gto_math": "[GTO数学] コールスポット | ターン | 必要エクイティ=25%（α=25%）"
   },
   "fold_unknown_flop": {
     "bluered_classification": {

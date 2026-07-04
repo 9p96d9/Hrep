@@ -92,6 +92,28 @@ test_preflop_only                     → preflop_only / preflop_only
 
 ---
 
+### 優先度 HIGH（パイプライン統合）
+
+#### `tests/test_hand_converter.py`
+対象: ハンドJSON→分類・スコア変換（`annotate_hand`）
+仕様参照: `specs/hand_converter.md`
+
+```
+test_river_call_lose_gto_correct_is_nice_call   → nice_call / gray / スコア≥0.5
+test_river_call_lose_undecidable_is_call_lost   → call_lost / warn
+test_river_fold_call_incorrect_is_nice_fold     → nice_fold / gray / MDF基準あり
+test_turn_fold_is_fold_unknown                  → fold_unknown / warn / MDFなし
+test_river_hero_bet_opp_fold_is_hero_aggression_won → hero_aggression_won / red
+test_river_hero_bet_called_and_wins_is_value_success → value_success / blue
+test_river_call_and_win_is_bluff_catch          → bluff_catch / blue
+test_preflop_only_hand                          → preflop_only / gto_math=""
+test_checkdown_showdown_is_preflop_only         → preflop_only（判断スポットなし）
+test_scores_match_gto_math_spec                 → specs/gto_math.md の式と一致
+test_input_hand_is_not_mutated                  → 入力dict非破壊
+```
+
+---
+
 ### 優先度 MEDIUM（AI出力バリデーター）
 
 #### `tests/test_ai_output.py`

@@ -35,7 +35,9 @@ MDF        = 1 − α
 ```
 INPUT:  相手のbet/raise額、Heroの投資額、ポット
 OUTPUT: 必要エクイティ = net_call ÷ (pot_before_call + net_call)
-表示例: "[GTO数学] ブラフキャッチスポット | リバー | 必要エクイティ=33%"
+表示例: "[GTO数学] ブラフキャッチスポット | リバー | 必要エクイティ=33%（α=33%）"
+※ 末尾の（α=XX%）は難易度スコアのα微補正が extract_alpha で拾うための併記
+  （net_call=bet のとき必要エクイティとαは同値になる）
 ```
 
 ### AGGRESSOR系（hero_aggression_won / value_success / bluff_failed）
@@ -181,3 +183,6 @@ indifference = 1.0 - |2α - 1|   # α=0.5のとき最大1.0
      §3の式（α=0.45 → indifference=0.9 → 補正+0.04）と矛盾していたため、式を正とした。
   2. `compute_gto_math` の DEFENDER系 `pot_before_call` は「betを含まないポット」と定義
      （tests/PLAN.md fixture例 pot=28, bet=20 → 必要エクイティ=42% に一致させた）。
+- **2026-07-04（hand_converter接続）:** DEFENDER系の出力に（α=XX%）を併記。
+  難易度スコアのα微補正は gto_math 文字列からの抽出（§3）なので、併記しないと
+  DEFENDER系スポットに補正が一切効かなかった。tests/PLAN.md のfixture例と同形式。
