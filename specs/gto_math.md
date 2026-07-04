@@ -1,6 +1,6 @@
 # specs/gto_math.md — GTO数学・スコア定義
 
-**Status: 📝 Draft**
+**Status: ✅ 実装済み**（`scripts/hand_converter.py` — compute_gto_math / compute_difficulty / compute_nice_play_score）
 **実装参考:** `GTO-/scripts/analyze2.py` (`_compute_gto_math`, `_compute_difficulty`, `_compute_nice_play_score`)
 **対応テスト:** `tests/test_gto_math.py`
 

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}HandReporter — セッション一覧{% endblock %}
+{% block header %}HandReporter — セッション一覧{% endblock %}
+{% block content %}
+  {% if not firestore_available %}
+    <div class="panel sub">Firestore未接続（ローカル開発モード）。保存済みセッションは表示できません。</div>
+  {% elif analyses %}
+    {% for a in analyses %}
+      <div class="panel">
+        <a href="/result/{{ a.analysis_id }}"><strong>{{ a.analysis_id }}</strong></a>
+        <span class="sub"> — {{ a.hand_count }}ハンド / {{ a.saved_at }}</span>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="panel sub">セッションがまだありません。Chrome拡張からハンドを取得すると表示されます。</div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+.dockerignore
+__pycache__
+*.pyc
+.pytest_cache
+tests
+docs
+specs
+experiments
+CHANGES.md
+CLAUDE.md
+REQUIREMENTS.md

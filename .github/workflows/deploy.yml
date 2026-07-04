@@ -1,0 +1,27 @@
+# Cloud Runデプロイ（docs/infra.md デプロイフロー）
+# 必要なsecrets: GCP_SA_KEY（サービスアカウント鍵JSON — gcloud iam service-accounts keys create → gh secret set）
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          project_id: poker-gto
+          service: hrep
+          region: asia-northeast1
+          source: .
+          # SSEストリーミングのためタイムアウトを明示（デフォルト60秒では切れる）
+          timeout: 3600
+      - name: Health check
+        run: |
+          sleep 10
+          curl -sf https://hrep.app/health

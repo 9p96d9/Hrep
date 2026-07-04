@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}HandReporter{% endblock %}</title>
+<style>
+  :root { --bg:#101418; --panel:#1a2028; --text:#e8e8e8; --sub:#9aa4af;
+          --blue:#5b9bd5; --red:#e94560; --green:#4caf93; --warn:#d5a95b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:"Hiragino Sans","Noto Sans JP",sans-serif; font-size:14px; }
+  a { color:var(--blue); text-decoration:none; }
+  header.app { padding:14px 20px; background:var(--panel); border-bottom:1px solid #2a323d; }
+  header.app h1 { margin:0; font-size:16px; }
+  main { max-width:960px; margin:0 auto; padding:16px 20px 96px; }
+  .panel { background:var(--panel); border:1px solid #2a323d; border-radius:8px;
+           padding:12px 14px; margin:12px 0; }
+  .sub { color:var(--sub); font-size:12px; }
+  button { cursor:pointer; border:1px solid #3a4450; background:#232b35; color:var(--text);
+           border-radius:6px; padding:6px 10px; font-size:13px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.active { border-color:var(--blue); color:var(--blue); }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="app"><h1>{% block header %}HandReporter{% endblock %}</h1></header>
+<main>{% block content %}{% endblock %}</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

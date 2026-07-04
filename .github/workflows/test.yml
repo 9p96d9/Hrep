@@ -1,0 +1,13 @@
+# tests/PLAN.md — DB・外部API不要の純粋関数テストのみ（secrets設定なしで動く）
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest python-dotenv
+      - run: pytest tests/ -v --tb=short

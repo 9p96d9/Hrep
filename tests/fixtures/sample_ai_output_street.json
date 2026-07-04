@@ -1,0 +1,54 @@
+{
+  "valid_river_hand": {
+    "id": 1,
+    "preflop_context": "BBはBTNの2.5bbオープンに対してディフェンド。BBのレンジはATo+, KQs, 22-66, スーテッドコネクターを含む。",
+    "flop_read": "9h5d2cのドライボードでBTNのCBetレンジは広く、BBはトップペア以上とバックドアドローでコールを継続する。",
+    "turn_read": "KhはBTNのレンジに有利なカードだが、チェックバックによりBTNのレンジからKxの一部が除外される。",
+    "river_analysis": "7sのリバーでBTNのベットに対し、[GTO数学]のMDF基準=58%を満たすためBBはブラフキャッチャーの上位でコールが必要。",
+    "opp_exploit": "BTNはターンでチェックした後のリバーbetにブラフが偏りやすく、BBはcallの頻度を上げて搾取できる。",
+    "kaizen": "このラインで十分"
+  },
+  "valid_flop_end_hand": {
+    "id": 2,
+    "preflop_context": "COは2.5bbでRFI。COのレンジは22+, ATo+, KJs+を含む標準的なオープンレンジ。",
+    "flop_read": "9h5d2cでCOのCBetに対しBTNがフォールド。COのレンジはオーバーカード主体でエクイティを保持している。",
+    "turn_read": "",
+    "river_analysis": "",
+    "opp_exploit": "BTNはドライボードでfoldが多く、COは小サイズのbetの頻度を上げて搾取できる。",
+    "kaizen": "このラインで十分"
+  },
+  "violation_mdf_on_flop": {
+    "id": 3,
+    "preflop_context": "BBはBTNのオープンにディフェンド。レンジはATo+, 22-66を含む。",
+    "flop_read": "フロップのCBetに対しBBはMDF基準67%を満たすためコールが必要。",
+    "turn_read": "",
+    "river_analysis": "",
+    "opp_exploit": "BTNはCBet頻度が高く、BBはcheck-raiseで搾取できる。",
+    "kaizen": "このラインで十分"
+  },
+  "violation_hero_subject": {
+    "id": 4,
+    "preflop_context": "ヒーローはBTNのオープンにコールした。",
+    "flop_read": "9h5d2cでBBはCBetに対しコールを継続する。",
+    "turn_read": "",
+    "river_analysis": "",
+    "opp_exploit": "BTNはCBet頻度が高く、BBはraiseで搾取できる。",
+    "kaizen": "このラインで十分"
+  },
+  "violation_missing_field": {
+    "id": 5,
+    "preflop_context": "BBはBTNのオープンにディフェンド。",
+    "flop_read": "9h5d2cでBBはコールを継続する。",
+    "turn_read": "",
+    "river_analysis": ""
+  },
+  "violation_river_reached_but_empty": {
+    "id": 6,
+    "preflop_context": "BBはBTNのオープンにディフェンド。レンジはATo+, 22-66。",
+    "flop_read": "9h5d2cでBBはコールを継続する。",
+    "turn_read": "KhでBBのレンジは変化しない。",
+    "river_analysis": "",
+    "opp_exploit": "BTNはリバーのbetにブラフが偏る。",
+    "kaizen": "このラインで十分"
+  }
+}

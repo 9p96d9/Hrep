@@ -1,6 +1,6 @@
 # specs/classify.md — ハンド分類定義
 
-**Status: 📝 Draft**
+**Status: ✅ 実装済み**（`scripts/hand_converter.py` — GTO判定は§3のV1ヒューリスティック・treys未導入環境では判定困難に倒す）
 **実装参考:** `GTO-/scripts/classify.py`, `GTO-/scripts/hand_converter.py`（旧9カテゴリ実装。nice_call/bad_callは新規）
 **対応テスト:** `tests/test_classify.py`
 

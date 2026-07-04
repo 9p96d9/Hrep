@@ -11,14 +11,15 @@
 [Chrome拡張]
     ↓ HTTPS POST（hrep.app / *.run.app）
 [Google Cloud Run]
-  └─ FastAPI + uvicorn（Docker）
+  └─ Flask + gunicorn（Docker、エントリポイント: main.py）
        └─ Firebase Admin SDK → Firestore（ハンドストレージ）
 ```
 
 | 項目 | 値 |
 |---|---|
 | ドメイン | hrep.app（Cloudflare DNS管理）+ Cloud Run URL |
-| バックエンド | Google Cloud Run（Docker） |
+| バックエンド | Google Cloud Run（Docker）— Flask + gunicorn |
+| サービス名 / リージョン | `hrep` / `asia-northeast1` |
 | DB | Firebase Firestore |
 | 認証 | Firebase Auth（Google） |
 | CI/CD | GitHub Actions → Cloud Run deploy |
@@ -68,7 +69,7 @@ Docker build → Cloud Run deploy
 
 ### Cloud Run 設定注意点
 
-- SSEストリーミングのため `--timeout=3600` を明示設定（デフォルト60秒では切れる）
+- SSEストリーミングのため `--timeout=3600` を明示設定（デフォルト60秒では切れる）。コンテナ側も gunicorn `--timeout 0`（Dockerfile設定済み）
 - `GOOGLE_APPLICATION_CREDENTIALS_JSON` はファイルパスでなくJSON文字列として渡す
 - Cloud Run は HTTPS URL 自動発行。Chrome拡張側のエンドポイントURLと一致しているか確認
 

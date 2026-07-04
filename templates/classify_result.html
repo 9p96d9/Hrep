@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}HandReporter — 解析結果{% endblock %}
+{% block header %}HandReporter — 解析結果{% endblock %}
+{% block head %}
+<style>
+  .summary-bar { display:flex; gap:16px; }
+  .summary-bar .item strong { font-size:18px; }
+  section h2 { font-size:14px; margin:16px 0 4px; }
+  section .subtitle { color:var(--sub); font-size:12px; margin-bottom:8px; }
+  .np-card, .ic-card { cursor:pointer; }
+  .badge { display:inline-block; font-size:11px; font-weight:bold; padding:1px 6px;
+           border-radius:4px; background:#333d49; margin-right:6px; }
+  .badge.gray { background:#3a4450; } .badge.red { background:#5a2733; }
+  .badge.threebet { background:#4a3b1f; color:var(--warn); }
+  .opp-pos { font-size:11px; font-weight:bold; background:#333d49; padding:1px 5px;
+             border-radius:4px; }
+  .pl-pos { color:var(--green); } .pl-neg { color:var(--red); }
+  .tabbar, .filterbar { display:flex; gap:8px; margin:14px 0 8px; flex-wrap:wrap; }
+  .tab-panel.hidden, .hcard.hidden { display:none; }
+  .cat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+              gap:8px; margin:10px 0; }
+  .cat-cell { background:var(--panel); border:1px solid #2a323d; border-radius:6px;
+              padding:8px 10px; cursor:pointer; }
+  .cat-cell.cat-active-filter { border-color:var(--blue); color:var(--blue); }
+  .hcard { scroll-margin-top:60px; }
+  .hand-actions { color:var(--sub); font-size:12px; margin-top:6px; }
+  .hand-gto-math { background:#1d2a3a; color:#bcd6f0; border-radius:6px; padding:6px 8px;
+                   font-size:12px; margin-top:6px; }
+  .ai-panel { margin-top:6px; }
+  .ai-panel .ai-body { display:none; background:#141a21; border-radius:6px; padding:8px;
+                       font-size:12px; }
+  .ai-panel.open .ai-body { display:block; }
+  footer.sticky { position:fixed; bottom:0; left:0; right:0; background:var(--panel);
+                  border-top:1px solid #2a323d; padding:10px 20px; display:flex; gap:10px; }
+  #cart-drawer { position:fixed; top:0; right:-300px; width:300px; height:100%;
+                 background:var(--panel); border-left:1px solid #2a323d; padding:14px;
+                 transition:right .2s; overflow-y:auto; z-index:20; }
+  #cart-drawer.open { right:0; }
+  #cart-drawer input { width:100%; padding:6px; background:#101418; color:var(--text);
+                       border:1px solid #3a4450; border-radius:6px; }
+  .cart-item { display:flex; justify-content:space-between; padding:4px 0;
+               border-bottom:1px solid #2a323d; font-size:12px; }
+  .in-cart { outline:1px solid var(--blue); }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="panel summary-bar">
+  <div class="item">総ハンド数 <strong>{{ summary.total }}</strong></div>
+  <div class="item">青線 <strong class="pl-pos">{{ summary.blue }}</strong></div>
+  <div class="item">赤線 <strong class="pl-neg">{{ summary.red }}</strong></div>
+  <div class="item">PFのみ <strong>{{ summary.preflop_only }}</strong></div>
+</div>
+
+{% if ev_diffs %}
+<div class="panel">
+  <strong>EV差分</strong>
+  {% for name, diff in ev_diffs.items() %}
+    <span class="sub">{{ name }}: {{ diff }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<section id="nice-plays">
+  <h2>高難度正解</h2>
+  <div class="subtitle">分散と切り離した判断品質 — bluff catch / nice call / nice fold スポットを難易度順に表示</div>
+  {% if nice_plays %}
+    {% for h in nice_plays %}
+    {% set cls = h.bluered_classification or {} %}
+    <div class="panel np-card" data-target="hcard-{{ h.hand_number }}">
+      <strong>#{{ loop.index }}</strong>
+      <strong>H{{ h.hand_number }}</strong>
+      <span class="badge gray">{{ cls.category_label }}</span>
+      <span>{{ street_ja(h) }}</span>
+      <span>{{ h.hero_position }} vs {{ opp_of(h).position or "?" }}</span>
+      {% for c in h.hero_cards or [] %}{{ c | card_span }}{% endfor %}
+      <span title="難易度スコア">{{ h.nice_play_score | score_dots }}</span>
+      <span class="{{ 'pl-pos' if (h.hero_result_bb or 0) > 0 else 'pl-neg' }}">{{ h.hero_result_bb | pl_fmt }}</span>
+      {% if cls.category == "nice_call" %}
+        <div class="sub">必要エクイティを満たすコール。損失は分散</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="panel sub">今日のナイスプレイ: 0件</div>
+  {% endif %}
+</section>
+
+<section id="improve-chances">
+  <h2>改善チャンス</h2>
+  <div class="subtitle">GTO判定で確定した改善余地 — 数値根拠付き</div>
+  {% if improve_chances %}
+    {% for h in improve_chances %}
+    {% set cls = h.bluered_classification or {} %}
+    <div class="panel ic-card" data-target="hcard-{{ h.hand_number }}">
+      <strong>H{{ h.hand_number }}</strong>
+      <span class="badge red">{{ cls.category_label }}</span>
+      <span>{{ street_ja(h) }}</span>
+      <span>{{ h.hero_position }} vs {{ opp_of(h).position or "?" }}</span>
+      {% for c in h.hero_cards or [] %}{{ c | card_span }}{% endfor %}
+      <span class="{{ 'pl-pos' if (h.hero_result_bb or 0) > 0 else 'pl-neg' }}">{{ h.hero_result_bb | pl_fmt }}</span>
+      <div class="sub">{{ h.gto_math }}</div>
+      <button class="cart-add" data-hnum="{{ h.hand_number }}" onclick="event.stopPropagation()">🛒 AI解析カートへ追加</button>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="panel sub">今日の改善チャンス: 0件</div>
+  {% endif %}
+</section>
+
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="tab-bluered">青赤線</button>
+  <button class="tab-btn" data-tab="tab-position">ポジション別</button>
+  <button class="tab-btn" data-tab="tab-chips">チップ推移</button>
+</div>
+
+<div id="tab-bluered" class="tab-panel">
+  <div class="cat-grid">
+    {% for key, c in category_counts.items() %}
+      <div class="cat-cell" data-category="{{ key }}">{{ c.label }} <strong>{{ c.count }}</strong></div>
+    {% endfor %}
+  </div>
+
+  <div class="filterbar">
+    <button class="filter-btn active" data-filter="all">全て</button>
+    <button class="filter-btn" data-filter="blue">青線</button>
+    <button class="filter-btn" data-filter="red">赤線</button>
+    <button class="filter-btn" data-filter="ai">AI済</button>
+    <button class="filter-btn" data-filter="3bet">3BET</button>
+    <button class="sort-btn" data-sort="pl-desc">損益▼</button>
+    <button class="sort-btn" data-sort="pl-asc">損益▲</button>
+    <button class="sort-btn" data-sort="position">ポジション</button>
+  </div>
+
+  <div id="hand-list">
+    {% for h in hands %}
+    {% set cls = h.bluered_classification or {} %}
+    {% set opp = opp_of(h) %}
+    <div class="panel hcard" id="hcard-{{ h.hand_number }}"
+         data-line="{{ cls.line }}" data-category="{{ cls.category }}"
+         data-3bet="{{ 1 if h.is_3bet_pot else 0 }}"
+         data-pl-num="{{ h.hero_result_bb or 0 }}"
+         data-position="{{ h.hero_position }}"
+         data-ai="{{ 1 if h.ai_detail_street or h.analyzed else 0 }}">
+      <strong>H{{ h.hand_number }}</strong>
+      {% if h.is_3bet_pot %}<span class="badge threebet">3BET</span>{% endif %}
+      <strong>{{ h.hero_position }}</strong> <span class="sub">(Hero)</span>
+      {% for c in h.hero_cards or [] %}{{ c | card_span }}{% endfor %}
+      vs <span class="opp-pos">{{ opp.position or "?" }}</span>
+      {% for c in opp.hole_cards or [] %}{{ c | card_span }}{% endfor %}
+      <span class="{{ 'pl-pos' if (h.hero_result_bb or 0) > 0 else 'pl-neg' }}">{{ h.hero_result_bb | pl_fmt }}</span>
+      <span class="badge">{{ cls.category_label }}</span>
+      <button class="cart-add" data-hnum="{{ h.hand_number }}"
+              {% if cls.category == "preflop_only" %}disabled title="プリフロップのみ（分析素材不足）"{% endif %}>🛒</button>
+
+      <div class="hand-actions">
+        {% for street in ["preflop", "flop", "turn", "river"] %}
+          {% set s = (h.streets or {}).get(street) %}
+          {% if s %}
+            {% set actions = s if s is iterable and s is not mapping else (s.actions or []) %}
+            {% if actions %}
+              <div><strong>{{ street }}</strong>
+                {%- if s is mapping and s.board %} [{% for c in s.board %}{{ c | card_span }}{% endfor %}]{% endif %}:
+                {% for a in actions %}{{ a.position }} {{ a.action }}{% if a.amount_bb %} {{ a.amount_bb }}bb{% endif %}{{ " / " if not loop.last }}{% endfor %}
+              </div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      {% if h.gto_math %}<div class="hand-gto-math">📐 {{ h.gto_math }}</div>{% endif %}
+
+      <div class="ai-panel" id="hai-{{ h.hand_number }}">
+        {% if h.ai_detail_street %}
+          <button class="ai-toggle">AI解析結果</button>
+          <div class="ai-body">
+            {% for field in ["preflop_context", "flop_read", "turn_read", "river_analysis", "opp_exploit", "kaizen"] %}
+              {% if h.ai_detail_street.get(field) %}
+                <div><strong>{{ field }}</strong>: {{ h.ai_detail_street[field] }}</div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="tab-position" class="tab-panel hidden">
+  <div class="panel sub">ポジション別ビュー（V1スキャフォールド: 未実装）</div>
+</div>
+<div id="tab-chips" class="tab-panel hidden">
+  <div class="panel sub">チップ推移ビュー（V1スキャフォールド: 未実装）</div>
+</div>
+
+<footer class="sticky">
+  <button id="cart-open">🛒 解析カート <span id="cart-badge">0</span></button>
+  <button disabled title="V1スキャフォールド: 未実装">3D可視化</button>
+</footer>
+
+<div id="cart-drawer">
+  <h2>解析カート</h2>
+  <div id="cart-items"></div>
+  <div class="sub" id="token-estimate">概算: 0 tok</div>
+  <p>
+    <input type="password" id="api-key" placeholder="APIキー（gsk_→Groq / その他→Gemini）">
+    <span class="sub" id="provider-hint"></span>
+  </p>
+  <button id="run-analysis" disabled>⚡ 解析を実行</button>
+  <button id="cart-close">閉じる</button>
+  <div id="analysis-log" class="sub"></div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>window.ANALYSIS_ID = {{ analysis_id | tojson }};</script>
+<script src="/static/classify_result.js?v={{ static_version }}"></script>
+{% endblock %}

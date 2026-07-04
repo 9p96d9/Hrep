@@ -1,6 +1,6 @@
 # specs/ai_analysis.md — AI解析システム仕様
 
-**Status: 📝 Draft**
+**Status: 🔄 実装中**（プロンプト: `scripts/ai_prompt.py` / 受入ゲート: `scripts/ai_validator.py` / SSE: `main.py`。実AI出力での品質検証が未了）
 **実装参考:** `GTO-/scripts/analyze2.py`（旧`detail`実装。`detail_street`は新規実装）
 **対応テスト:** `tests/test_ai_output.py`
 
