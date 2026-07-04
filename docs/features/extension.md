@@ -57,6 +57,18 @@ T4サイト WebSocket
 
 ---
 
+## 実装状況（2026-07）
+
+`extension/` にMV3スキャフォールドを作成済み（manifest / interceptor / content / background / popup）。
+アーキテクチャ・データフロー・ポップアップUIは本仕様どおり配線済み。
+
+**未実装（TODO）:** T4サイトの実WebSocketメッセージ形式が本リポジトリに未記録のため、
+`interceptor.js` の adapter 関数（`decodeT4Frame` / `toSnapshot` / `extractCompletedHand`）と
+`background.js` の `normalizeHand` はスケルトンのまま。実装参考 `GTO-/extension/interceptor.js` を見て埋める。
+併せて未実装: (1) `manifest.json` の `t4-placeholder.example` を実ホストへ差し替え、
+(2) Firebase ID token を `chrome.storage.local.idToken` へ供給するログイン導線（`background.js` authHeader）、
+(3) セッション終了イベントでのバッファ確実flush（現状はしきい値＋debounceのbest-effort）。
+
 ## ストアリリース（未完了・V1ゴールに含める）
 
 - [ ] Chrome Web Storeへの公開準備

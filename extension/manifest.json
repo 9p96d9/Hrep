@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "HrepNext Hand Capture",
+  "version": "0.1.0",
+  "description": "T4ポーカーサイトのハンドを傍受し、HrepNextサーバーへ送って判断品質を解析する。",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://*.t4-placeholder.example/*",
+    "https://hrep.app/*",
+    "https://*.run.app/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.t4-placeholder.example/*"],
+      "js": ["interceptor.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*.t4-placeholder.example/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "HrepNext Hand Capture"
+  }
+}
